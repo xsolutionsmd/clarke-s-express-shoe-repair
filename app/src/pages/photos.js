@@ -10,7 +10,6 @@ const PREVIEWABLE = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const HEIC = /\.(heic|heif)$/i;
 const ALLOWED_EXT = /\.(jpe?g|png|webp|heic|heif)$/i;
 const POLL = [1000, 2000, 5000];
-const SETTLED = new Set(['ready', 'rejected', 'local-rejected', 'failed', 'interrupted', 'expired']);
 
 export class PhotoManager {
   constructor({ list, notice, input, dropzone, limits, ensureDraft, onDraftLost, onChange }) {

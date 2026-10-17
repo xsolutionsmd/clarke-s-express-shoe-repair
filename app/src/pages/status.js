@@ -5,10 +5,10 @@ import '../styles/base.css';
 import '../styles/forms.css';
 import { initChrome } from '../lib/chrome.js';
 import { get, post, bootstrap, ApiError, describeRetry } from '../lib/api.js';
-import { h, icon, replace, button, setBusy, announce } from '../lib/dom.js';
+import { h, replace, button, setBusy, announce } from '../lib/dom.js';
 import { read, write, remove, uuid, HOUR } from '../lib/store.js';
 import { textField, setError, alertBox, callFallback } from '../lib/fields.js';
-import { STATUS, CLOSED, RESPONSE_LABELS, itemLabel, statusLabel, locationName } from '../lib/constants.js';
+import { STATUS, CLOSED, RESPONSE_LABELS, itemLabel, statusLabel } from '../lib/constants.js';
 import { formatDateTime, formatLongDateTime, moneyRange } from '../lib/format.js';
 import { watchLocations, findLocation, locationCard } from '../lib/locations.js';
 import { initLookup, saveStatusToken, readStatusToken, clearStatusToken } from '../lib/lookup.js';
@@ -168,8 +168,9 @@ function responseControls(s, offer, allowed) {
       remove(`resp.${offer.id}`);
       await load({ quiet: true });
       const note = app.querySelector('[data-response-note]');
-      if (note) replace(note, alertBox(result.message || 'Response recorded.', { tone: 'ok' }));
-      announce(result.message || 'Response recorded.');
+      const text = `You replied “${RESPONSE_LABELS[choice]}”. ${result.message || 'Your response is recorded.'}`;
+      if (note) replace(note, alertBox(text, { tone: 'ok' }));
+      announce(text);
     } catch (error) {
       setBusy(btn, false);
       if (!(error instanceof ApiError)) throw error;
@@ -293,7 +294,6 @@ function render() {
   renderLocation();
   document.title = `${label} | Repair status | Clarke’s Express Shoe Repair`;
   if (!app.dataset.focused) { app.dataset.focused = '1'; document.getElementById('status-title')?.focus({ preventScroll: true }); }
-  void locationName;
 }
 
 document.addEventListener('visibilitychange', () => {

@@ -5,13 +5,12 @@ const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 export function initMotion(scope = document) {
   const targets = [...scope.querySelectorAll('[data-reveal]')];
   if (!targets.length || !('IntersectionObserver' in window)) return;
-  document.documentElement.classList.add('motion-ready');
-  // Items already on screen at load appear immediately, without a late fade.
+  // Items already on screen at load appear immediately, without a late fade: measure
+  // first, mark them visible, then enable the hidden starting state for the rest.
   const viewport = window.innerHeight;
-  for (const el of targets) {
-    const rect = el.getBoundingClientRect();
-    if (rect.top < viewport && rect.bottom > 0) el.classList.add('is-visible');
-  }
+  const onScreen = targets.filter(el => { const r = el.getBoundingClientRect(); return r.top < viewport && r.bottom > 0; });
+  onScreen.forEach(el => el.classList.add('is-visible'));
+  document.documentElement.classList.add('motion-ready');
   let observer = null;
   const start = () => {
     observer = new IntersectionObserver(entries => {

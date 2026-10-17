@@ -163,7 +163,7 @@ function renderForm() {
   ui.email = textField({ name: 'email', label: 'Email', type: 'email', value: f.email, help: 'We send your reference and private status link here.', attrs: { autocomplete: 'email', maxlength: 254, inputmode: 'email', spellcheck: 'false' } });
   ui.phone = textField({ name: 'phone', label: 'Phone', type: 'tel', optional: true, value: f.phone, help: 'Needed if you’d like a call or text.', attrs: { autocomplete: 'tel', maxlength: 24, inputmode: 'tel' } });
   ui.preferred = choiceGroup({ name: 'preferred', legend: 'Best way to reach you', segmented: true, value: f.preferred || 'email',
-    options: [['email', 'Email'], ['call', 'Call'], ['text', 'Text']] });
+    options: [['email', 'Email me'], ['call', 'Call me'], ['text', 'Text me']] });
   const honeypot = h('div', { class: 'honeypot', 'aria-hidden': 'true' },
     h('label', { for: 'website-field' }, 'Website'), h('input', { id: 'website-field', name: 'website', type: 'text', tabindex: '-1', autocomplete: 'off' }));
 
@@ -478,12 +478,8 @@ async function clearDraft() {
 function finish(receipt, { push }) {
   const token = tokenFromUrl(receipt.statusUrl);
   if (token) saveStatusToken(token);
-  const stored = {
-    reference: receipt.reference, statusUrl: receipt.statusUrl, location: receipt.location, createdAt: receipt.createdAt,
-    message: receipt.message, locationMessage: receipt.locationMessage, closureMessage: receipt.closureMessage,
-    nextOpensAt: receipt.nextOpensAt, warnings: Array.isArray(receipt.warnings) ? receipt.warnings : [],
-    appointmentConfirmed: receipt.appointmentConfirmed === true,
-  };
+  // The create-request receipt holds no contact details; keep it exactly as returned.
+  const stored = { ...receipt, warnings: Array.isArray(receipt.warnings) ? receipt.warnings : [] };
   write(RECEIPT, 1, stored, TTL);
   photos?.clearAll();
   intake = { fields: { ...EMPTY }, draft: null, draftKey: null, photos: [], submit: null };

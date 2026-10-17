@@ -14,6 +14,7 @@ import {
 } from '../core.js';
 
 const STATUS_CHOICES = Object.entries(STATUS).filter(([s]) => s !== 'estimate_sent' && s !== 'needs_visit');
+const OFFER_FROM = new Set(['new', 'reviewing', 'estimate_sent', 'needs_visit']);
 
 export default async function detail({ main, params, sessionExpired }) {
   const id = params[0];
@@ -83,9 +84,9 @@ export default async function detail({ main, params, sessionExpired }) {
   const summary = h('div');
   const photosBox = h('div');
   const offerBox = h('div');
-  const historyBox = h('div');
+  const historyBox = h('div', { class: 'detail-stack' });
   const notesList = h('div');
-  const contactBox = h('div');
+  const contactBox = h('div', { class: 'stack contact-box' });
 
   // ---------- status form ----------
   const statusDraft = draft('status');
@@ -179,7 +180,7 @@ export default async function detail({ main, params, sessionExpired }) {
   const amountBox = h('div', { class: 'stack' }, amountMode.wrap, h('div', { class: 'grid-2' }, minField.wrap, maxField.wrap), disclaimer);
   const offerSlot = h('div', { class: 'form-alert-slot' });
   const offerRestored = h('div');
-  const closedNote = h('p', { class: 'small muted', hidden: true }, 'This request is closed. Reopen it with the status form before sending a new estimate or visit request.');
+  const closedNote = h('p', { class: 'small muted', hidden: true });
   const offerBtn = h('button', { type: 'submit', class: 'btn btn-primary btn-small' }, h('span', { class: 'btn-label' }, 'Send estimate'));
   const offerForm = h('form', { class: 'stack', novalidate: true }, offerRestored, closedNote, kind.wrap, amountBox, scope.wrap, timing.wrap, offerMsg.wrap, offerSlot, h('div', { class: 'form-actions' }, offerBtn));
   const offerFields = () => ({
@@ -193,9 +194,14 @@ export default async function detail({ main, params, sessionExpired }) {
     minField.wrap.querySelector('label').firstChild.textContent = f.amountMode === 'range' ? 'From, in dollars' : 'Amount in dollars';
     scope.wrap.querySelector('label').firstChild.textContent = f.kind === 'estimate' ? 'What the estimate covers' : 'Why you need to see it';
     offerBtn.querySelector('.btn-label').textContent = f.kind === 'estimate' ? 'Send estimate' : 'Ask customer to bring it in';
-    const closed = CLOSED.has(state.detail.status);
-    closedNote.hidden = !closed;
-    offerBtn.disabled = closed;
+    // Offers only move forward (docs/API.md): from later, closed or not-repairable states the
+    // request must first go back to "Being reviewed" with a staff-only reason.
+    const blocked = !OFFER_FROM.has(state.detail.status);
+    closedNote.textContent = CLOSED.has(state.detail.status)
+      ? 'This request is closed. To send a new estimate, first set the status to “Being reviewed” with a reason.'
+      : `To send a new estimate from “${STATUS[state.detail.status]}”, first set the status to “Being reviewed” with a reason.`;
+    closedNote.hidden = !blocked;
+    offerBtn.disabled = blocked;
   };
   for (const el of [...kind.inputs, ...amountMode.inputs]) el.addEventListener('change', () => { offerDraft.save(offerFields()); syncOffer(); });
   for (const el of [minField.input, maxField.input, scope.input, timing.input, offerMsg.input]) el.addEventListener('input', () => { offerDraft.save(offerFields()); setError(el, null); });
@@ -249,6 +255,7 @@ export default async function detail({ main, params, sessionExpired }) {
         for (const [k, v] of Object.entries(error.fields)) map[k] && setError(map[k], v);
       }
       showError(offerSlot, error, ctx, { onReload: () => reloadLatest([offerDraft]) });
+      if (error instanceof ApiError && error.code === 'INVALID_TRANSITION') replace(offerSlot, inlineAlert('An estimate can’t be sent from this status. First set the status to “Being reviewed” with a reason, then send it. Your text is kept.'));
     } finally { setBusy(offerBtn, false); syncOffer(); }
   });
 
@@ -443,7 +450,7 @@ export default async function detail({ main, params, sessionExpired }) {
     ].filter(Boolean);
     replace(contactBox,
       links.length ? h('div', { class: 'loc-actions' }, links) : null,
-      c.blockedByDemo ? h('p', { class: 'small muted' }, 'Demo mode: call, text and email buttons are off for contacts that aren’t on the private test list.') : null,
+      c.blockedByDemo ? h('p', { class: 'small muted' }, 'Demo mode: contact buttons appear only for destinations on the private test list.') : null,
       !links.length && !c.blockedByDemo ? h('p', { class: 'small muted' }, 'No phone or email to contact.') : null);
   }
 

@@ -69,16 +69,17 @@ function schedule() {
   window.clearTimeout(timer);
   if (!current || document.hidden) return;
   const due = Date.parse(current.validUntil) - Date.now();
-  // A stale "open" must never linger: mark stale at expiry, then refetch.
-  timer = window.setTimeout(() => {
-    if (!isFresh()) emit({ data: null, stale: true });
-    load();
-  }, Math.min(Math.max(due, 5000), 5 * 60000));
+  // A stale "open" must never linger: mark stale exactly at validUntil, then refetch.
+  const expire = () => { current = null; emit({ data: null, stale: true }); load(); };
+  if (!(due > 0)) { expire(); return; }
+  timer = window.setTimeout(() => (isFresh() ? schedule() : expire()), Math.min(due, 5 * 60000));
 }
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { window.clearTimeout(timer); return; }
-  if (!isFresh()) load(); else schedule();
+  if (isFresh()) { schedule(); return; }
+  if (current) { current = null; emit({ data: null, stale: true }); }
+  load();
 });
 
 export function watchLocations(fn) {

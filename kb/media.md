@@ -37,10 +37,10 @@ The full library is in the private company folder (`private/assets/originals/`, 
 | 4ae687a193d3 | logo | image | 737x100 | business-official | https://www.clarkesshoerepair.com/ | Official red wordmark; retain legibility, no enlarged header raster. |
 | dc2c45602e65 | service:dundalk-location | image | 634x463 | business-official | https://www.clarkesshoerepair.com/ | Dundalk storefront; location imagery only, appointment-only copy comes from current KB. |
 | 48128ddc0e6e | about | image | 650x366 | business-official | https://www.clarkesshoerepair.com/ | Real craftsman at work; modest source resolution, use as secondary supporting image. |
-| d600e63f8c01 | gallery | image | 2048x1325 | business-official | https://www.clarkesshoerepair.com/gallery/ | High-resolution restored tan monk straps with sole detail; alternate landscape hero. |
+| d600e63f8c01 | hero | image | 2048x1325 | business-official | https://www.clarkesshoerepair.com/gallery/ | High-resolution restored tan monk straps with sole detail; alternate landscape hero. |
 | 30ab62c60233 | gallery | image | 1440x1800 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/C_NqxzFp_Mb/ | Completed polished dress shoes, neutral mat and strong craft detail. |
 | 1a4378dac4c8 | gallery | image | 1440x1794 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/C-h7sdRJZRJ/ | Restored casual boots and rubber sole; complements dress-shoe work. |
-| c1552b8d1158 | service:sole-protection | image | 1440x1440 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/CSwVAdBrBkx/ | Real red protective soles, clean square composition. |
+| c1552b8d1158 | service:soles-heels | image | 1440x1440 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/CSwVAdBrBkx/ | Real red protective soles, clean square composition. |
 | 5748995db348 | service:resoling | image | 1440x1437 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/CJDVzG5MPwb/ | Boat shoe with fresh white outsole, strong evidence of varied repair. |
 | 6715d5e4ef37 | hero | image | 1440x1800 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/BygRXk8pOE6/ | Rich restored black leather and red soles, strong vertical composition. Keep full workmanship visible; avoid busy top edge. |
 | 46257a13947a | service:leather-repair | image | 1080x1080 | business-official | https://www.instagram.com/clarke_the_shoe_doc/p/BqS_Bl1h9_D/ | Restored leather bag handles; diversifies services beyond footwear. |
@@ -50,11 +50,25 @@ The full library is in the private company folder (`private/assets/originals/`, 
 | a5a7d729cc9f | about | image | 1922x1920 | business-official | https://www.facebook.com/photo/?fbid=240970462973827 | High-resolution owner portrait in his actual workshop; crop around face and tools. |
 | 27e3eddd0df8 | service:bel-air-location | image | 2048x2045 | business-official | https://www.facebook.com/photo/?fbid=237944229943117 | Bel Air Burns Alley storefront and surroundings; useful arrival context. |
 | ce97e55f2909 | about | image | 768x576 | business-official | https://www.clarkesshoerepair.com/services/ | Owner holding certificate in workshop; do not invent an award title or date. |
-| d331be06df16 | service:orthopedic-lifts | image | 1000x750 | public-unverified | https://www.yelp.com/biz_photos/clarkes-express-shoe-repair-bel-air?select=fgliidcJxq-32UbTmd_mZA | Clear sole-lift repair photo from Yelp, records third-party provenance. |
+| d331be06df16 | service:stretching-fit | image | 1000x750 | public-unverified | https://www.yelp.com/biz_photos/clarkes-express-shoe-repair-bel-air?select=fgliidcJxq-32UbTmd_mZA | Clear sole-lift repair photo from Yelp, records third-party provenance. |
 
 ## Used on the website
 
-None selected yet.
+| Site file | Type | Source page | Rights |
+|---|---|---|---|
+| app/public/media/hero-monk-{800,1200,1600}.webp+og-clarkes.jpg | image | https://www.clarkesshoerepair.com/gallery/ | business-official |
+| app/public/media/dress-polish-{600,900,1200}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/C_NqxzFp_Mb/ | business-official |
+| app/public/media/chukka-before-{500,800}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/C-h7sdRJZRJ/ | business-official |
+| app/public/media/chukka-sole-{600,900,1200}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/C-h7sdRJZRJ/ | business-official |
+| app/public/media/chukka-after-{500,800}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/C-h7sdRJZRJ/ | business-official |
+| app/public/media/soles-red-{500,800,1100}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/CSwVAdBrBkx/ | business-official |
+| app/public/media/hero-redsole-{600,900,1200}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/BygRXk8pOE6/ | business-official |
+| app/public/media/bag-handles-{500,800,1080}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/BqS_Bl1h9_D/ | business-official |
+| app/public/media/dye-pair-{500,800,1080}.webp | image | https://www.instagram.com/clarke_the_shoe_doc/p/BfQ8xgWHUxj/ | business-official |
+| app/public/media/clarke-mark.png+app/public/apple-touch-icon.png | image | https://www.facebook.com/photo/?fbid=316518422085697 | business-official |
+| app/public/media/farrell-{600,900,1200}.webp | image | https://www.facebook.com/photo/?fbid=240970462973827 | business-official |
+| app/public/media/belair-shop-{600,1000,1500}.webp | image | https://www.facebook.com/photo/?fbid=237944229943117 | business-official |
+| app/public/media/fit-lift-{500,750}.webp | image | https://www.yelp.com/biz_photos/clarkes-express-shoe-repair-bel-air?select=fgliidcJxq-32UbTmd_mZA | public-unverified |
 
 All collected media of the business may be used in every environment, including production,
 because this site is built for the business. The rights field records provenance only; it does not block use.

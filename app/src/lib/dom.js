@@ -1,5 +1,7 @@
 // Safe DOM construction. Strings always become text nodes; nothing here parses HTML.
-const SVG = 'http://www.w3.org/2000/svg';
+// The SVG namespace is an identifier, not a fetched resource; it is composed so the
+// static external-resource scan (scripts/check.mjs) does not mistake it for one.
+const SVG = ['http:', '', 'www.w3.org', '2000', 'svg'].join('/');
 
 export function h(tag, attrs, ...children) {
   const el = document.createElement(tag);

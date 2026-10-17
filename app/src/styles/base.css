@@ -138,7 +138,7 @@ small, .small { font-size: 14px; line-height: 20px; }
 .wordmark-name { font-family: var(--serif); font-size: 22px; letter-spacing: 0.04em; line-height: 24px; }
 .wordmark-sub { font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); }
 .site-nav { flex: 1; display: flex; align-items: center; gap: 24px; }
-.nav-links { display: flex; gap: 32px; margin: 0 auto; }
+.nav-links { display: flex; gap: 28px; margin: 0 auto; }
 .nav-links a {
   color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 500;
   padding: 10px 0; border-bottom: 1px solid transparent;
@@ -146,11 +146,22 @@ small, .small { font-size: 14px; line-height: 20px; }
 }
 .nav-links a:hover, .nav-links a[aria-current='page'] { border-bottom-color: var(--ink); }
 .nav-phones { display: none; }
-.menu-toggle, .header-call { display: none; }
+.menu-toggle { display: none; }
+.header-inner > .wordmark { order: 1; }
+.header-inner > .site-nav { order: 2; }
+.header-call {
+  order: 3; display: inline-flex; align-items: center; gap: 8px; flex: none; min-height: 44px;
+  color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px;
+  transition: color var(--fast) var(--ease);
+}
+.header-call:hover { color: var(--oxblood); }
 @media (max-width: 1040px) {
   .header-inner { justify-content: space-between; gap: 8px; padding: 0 12px; }
-  .menu-toggle, .header-call { display: inline-flex; }
-  .wordmark { position: absolute; left: 50%; transform: translateX(-50%); }
+  .menu-toggle { display: inline-flex; }
+  .header-call { justify-content: center; width: 44px; border-radius: 2px; }
+  .header-call:hover { background: var(--tint); }
+  .header-call-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .header-inner > .wordmark { position: absolute; left: 50%; transform: translateX(-50%); }
   .site-nav {
     position: absolute; left: 0; right: 0; top: 100%;
     flex-direction: column; align-items: stretch; gap: 20px;
@@ -169,8 +180,8 @@ small, .small { font-size: 14px; line-height: 20px; }
   .nav-phones a { color: var(--ink); font-weight: 600; }
 }
 @media (max-width: 380px) {
-  .wordmark-name { font-size: 19px; }
-  .wordmark-mark { width: 22px; height: 26px; }
+  .header-inner .wordmark-name { font-size: 19px; }
+  .header-inner .wordmark-mark { width: 22px; height: 26px; }
 }
 
 /* Notice band */
@@ -248,3 +259,7 @@ small, .small { font-size: 14px; line-height: 20px; }
 .skeleton-title { height: 40px; width: 60%; margin: 16px 0 24px; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--ink); border-right-color: transparent; border-radius: 50%; animation: spin 700ms linear infinite; display: inline-block; }
+
+/* Headings receive focus from script after navigation for screen readers; they are
+   not interactive, so no ring is drawn for them. */
+h1[tabindex='-1']:focus, h2[tabindex='-1']:focus, .form-alert[tabindex='-1']:focus, .form-alert-slot [tabindex='-1']:focus { outline: none; }

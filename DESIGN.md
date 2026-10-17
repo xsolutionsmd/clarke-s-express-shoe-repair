@@ -62,35 +62,30 @@ movement and keeps opacity changes under 150 ms. No autoplaying carousels or rib
 - **SVG icons**: one 24 px stroke set (arrow, phone, message, map pin, upload, check,
   alert, close, chevron); no text arrows or emoji.
 
-## Proposed frontend structure (build round; waits for committed `docs/API.md`)
+## Frontend structure (as built, 2026-10-17)
 
-Vite 7 multi-page build to `app/dist`, plain HTML, CSS and browser ES modules, no UI
-framework, matching the contract's ownership table.
+Vite 7 multi-page build to `app/dist`: plain HTML, CSS and browser ES modules, no UI
+framework. Flask serves `index.html` for `/`, `repair-request.html` for
+`/repair-request` and `/repair-request/complete`, `repair-status.html` for
+`/repair-status`, and `admin.html` for every allowlisted `/admin/*` route.
 
 ```
 app/
-  index.html                 home
-  request.html               photo repair request (deep-linkable, ?item= preselect)
-  status.html                status by token and lookup form
-  admin/login.html           sign-in shell
-  admin/index.html           inbox, detail, ticket, settings, team, outbox views
-  vite.config.mjs            multi-page inputs, dev proxy per docs/API.md
-  public/fonts/              self-hosted WOFF2 plus OFL texts
-  public/media/              optimised AVIF/WebP/JPEG renditions (2-3 widths each)
-  src/styles/tokens.css      the tokens above
-  src/styles/base.css        reset, type, layout, focus, reduced motion
-  src/styles/components.css  shared components
-  src/styles/admin.css       admin layout using the same tokens
-  src/lib/api.js             fetch wrapper: bootstrap/CSRF, idempotency keys, error shapes
-  src/lib/motion.js          one IntersectionObserver for entrances, paused when hidden
-  src/lib/hours.js           open-now rendering from /api/v1/locations (server is truth)
-  src/pages/home.js
-  src/pages/request.js       form state, local draft, validation messages
-  src/pages/photo-upload.js  draft photo uploads, progress, retry, remove
-  src/pages/status.js
-  src/pages/admin/*.js       one module per admin view
-  src/icons.svg              SVG sprite
+  index.html, repair-request.html, repair-status.html, admin.html
+  vite.config.mjs            inputs, shared partials, dev proxy and shell route map
+  xs-check.json              required tel/sms/Maps/social links, no external resources
+  public/fonts/              Libre Caslon Display + Hanken Grotesk WOFF2 (latin) and OFL texts
+  public/media/              WebP renditions of selected business photos (see kb/media.md)
+  src/partials/              head, header, footer, status lookup form
+  src/styles/                tokens, base, forms, home, admin
+  src/lib/                   api (CSRF/idempotency/errors), dom (safe builder, icons),
+                             store (sessionStorage), locations, lookup, fields, format,
+                             nytime, motion, chrome (menu), constants
+  src/pages/                 home, request (+ photos), status
+  src/admin/                 main (router/layout), core (session, staff drafts, UI), views/*
 ```
 
-Remove the placeholder `xs-stage` meta and fill `app/xs-check.json` required links
-(tel, sms, Maps, social) when the real pages land.
+Before/after: no slider. The library has no pixel-aligned pair; the home page shows a
+real same-item before/after diptych (Instagram post C-h7sdRJZRJ) as two static photos.
+
+The placeholder `xs-stage` meta is removed and `app/xs-check.json` lists the required links.

@@ -16,7 +16,7 @@ Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. Research, media delivery, infrastructure and template are complete. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend review fixes pass 121 backend/API tests, 61 recovery tests and 54 updater cases; the earlier real HTTP replacement/full-state restore drill also passed. Frontend implementation is partial. Combined build, browser acceptance and functional release have not passed.
+2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend review fixes pass 121 backend/API tests, 61 recovery tests and 54 updater cases. Frontend implementation is complete; its combined check passed all 44 browser cases at 1440/375. Parent verification at the committed revision, final code review, hands-on acceptance and live release remain outstanding.
 
 ## Last session
 
@@ -24,8 +24,8 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Finish missing admin screens/styles and synchronize the frontend dependency lock; then run scripts/app.py check, code review, and desktop/tablet/phone walkthroughs. Backend prepared 44 browser cases but none has executed. Review the locations.js stale-state refresh deadline reported by backend. The Restory direction and bounded REA/Stitch fallback are recorded in design-brief.md and DESIGN.md. All 45 pre-release and 13 live acceptance rows remain fail pending their complete scenario evidence; actual Google/Gmail checks are still required.
+Run scripts/app.py check --keep-candidate at the committed source revision; independent code review and parent desktop/tablet/phone walkthrough follow. Triage the development Vite-config override and customer-email item labels reported by frontend. Inspect remaining management pages, photo zoom/print, keyboard, enlarged text and motion recordings. All 45 pre-release and 13 live acceptance rows remain fail pending complete scenario evidence; actual Google/Gmail checks are still required.
 
 ## Blockers / waiting on
 
-Frontend implementation stopped at a provider rate limit, repeated on one bounded recovery attempt. Partial source is preserved but incomplete and unverified. Backend review repairs are implemented and regression-tested; overall review triage remains open. Resume frontend when the required provider is available or the user explicitly changes model routing; do not repeatedly relaunch failed tasks. The user has been asked about an Astra override and has not answered. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
+No provider blocker: Claude resumed and completed frontend. Overall review triage and feature acceptance remain open. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
