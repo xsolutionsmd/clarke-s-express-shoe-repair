@@ -67,15 +67,22 @@ def test_corrupt_animated_pixel_limits_and_stale_cleanup(app,client):
         maintenance.reconcile()
         with db.connect() as c:assert {r[0] for r in c.execute('SELECT state FROM photos')}=={'rejected'}
 
-def test_real_12mp_heic_under_runtime_limit(app,client,monkeypatch):
+@pytest.mark.parametrize('inherited_stack_mib',[8,16])
+def test_real_12mp_heic_under_runtime_limit(app,client,monkeypatch,inherited_stack_mib):
     # Preserve the real sandboxed subprocess; include bounded process diagnostics
     # only if the real fixture fails, so CI failures distinguish timeout/signal/OOM.
-    import resource,time,platform
+    import resource,time,platform,sys
+    stack_bytes=inherited_stack_mib*1024*1024
+    hard=resource.getrlimit(resource.RLIMIT_STACK)[1]
+    if hard!=resource.RLIM_INFINITY and hard<stack_bytes:pytest.skip('Host stack hard limit is stricter than this scenario')
     original=uploads.subprocess.run;diagnostics=[]
     def observed(*args,**kwargs):
         started=time.monotonic();kwargs['stderr']=uploads.subprocess.PIPE
         try:
-            process=original(*args,**kwargs)
+            # A real exec wrapper sets the inherited limit without preexec_fn in
+            # the threaded web process. Decoder/FDs/sandbox remain the actual path.
+            wrapper=f'import os,resource,sys; resource.setrlimit(resource.RLIMIT_STACK,({stack_bytes},resource.getrlimit(resource.RLIMIT_STACK)[1])); os.execv(sys.argv[1],sys.argv[1:])'
+            process=original([sys.executable,'-c',wrapper,*args[0]],*args[1:],**kwargs)
             diagnostics.append({'returncode':process.returncode,'seconds':round(time.monotonic()-started,2),
                 'stderr':process.stderr[-2000:].decode(errors='replace')})
             return process

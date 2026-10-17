@@ -163,10 +163,7 @@ def convert(raw_key,output_key):
     try:
         with tempfile.TemporaryFile(mode='w+b',dir='/tmp') as result:
             try:
-                # The isolated environment does not inherit the container's malloc
-                # setting. Bound glibc arenas before Python/libheif starts so codec
-                # threads cannot reserve host-dependent extra heaps under RLIMIT_AS.
-                run=subprocess.run([sys.executable,'-B',str(Path(__file__).with_name('decoder.py')),str(source),str(dest),str(result.fileno())],pass_fds=(source,dest,result.fileno()),stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env={'PATH':'/usr/local/bin:/usr/bin','LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1','OMP_NUM_THREADS':'1','MALLOC_ARENA_MAX':'1'},timeout=20,close_fds=True)
+                run=subprocess.run([sys.executable,'-B',str(Path(__file__).with_name('decoder.py')),str(source),str(dest),str(result.fileno())],pass_fds=(source,dest,result.fileno()),stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env={'PATH':'/usr/local/bin:/usr/bin','LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1','OMP_NUM_THREADS':'1'},timeout=20,close_fds=True)
                 if run.returncode:return {'error':'IMAGE_LIMIT_EXCEEDED'}
                 result.seek(0);return json.loads(result.read(4096))
             except subprocess.TimeoutExpired:return {'error':'IMAGE_LIMIT_EXCEEDED'}

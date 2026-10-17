@@ -3,11 +3,16 @@
 ## First release checks, 2026-10-17
 
 The first hosted check at 6a8d4f9 failed the real 12 MP HEIC conversion with
-IMAGE_LIMIT_EXCEEDED; 136 other backend cases passed. The isolated decoder now
-sets MALLOC_ARENA_MAX=1 explicitly before process startup. No sandbox, resource
-limit, accepted image type or frontend behavior changed. Required hosted checks
-must pass before publishing this correction. The original reviewed build receipt
-remains at 37fd564; this targeted release correction is recorded separately.
+IMAGE_LIMIT_EXCEEDED; 136 other backend cases passed. A trial allocator cap did
+not fix it and was removed. Diagnostics found CI inherited a 16 MiB stack; the
+same setting reproduced the handled memory error locally. The decoder now
+re-execs with its stack bounded to 8 MiB before reading an image, preserving
+stricter inherited limits. Its 160 MiB address-space, CPU, time and sandbox
+limits are unchanged. All nine upload cases pass under CI's inherited stack
+and the real 256 MiB container cap, including real HEIC cases with 8 and 16 MiB
+inherited stacks. Hosted checks must pass before publishing this correction.
+The original reviewed build receipt remains at 37fd564; this targeted release
+correction is recorded separately. No frontend change requires a layout review.
 
 ## Accepted pre-release build, 2026-10-17
 

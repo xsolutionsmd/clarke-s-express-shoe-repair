@@ -68,6 +68,15 @@ def decode(source,destination,profile):
         return dict(width=clean.width,height=clean.height,bytes=length,mediaType='image/jpeg')
 
 def main():
+    # pthread takes its default stack size from RLIMIT_STACK at process startup.
+    # Hosted builders can inherit 16 MiB instead of 8 MiB; tiled HEIC threads then
+    # exhaust the same 160 MiB address-space cap. Re-exec before reading any image
+    # with a bounded stack; retain any stricter inherited limit and all open FDs.
+    stack_soft,stack_hard=resource.getrlimit(resource.RLIMIT_STACK)
+    stack_limit=8*1024*1024
+    if stack_soft==resource.RLIM_INFINITY or stack_soft>stack_limit:
+        resource.setrlimit(resource.RLIMIT_STACK,(stack_limit,stack_hard))
+        os.execv(sys.executable,[sys.executable,'-B',__file__,*sys.argv[1:]])
     # All image plugins and colour libraries are loaded before restricting syscalls.
     pillow_heif.register_heif_opener(decode_threads=0,thumbnails=False,depth_images=False,aux_images=False)
     Image.init();profile=ImageCms.createProfile('sRGB')

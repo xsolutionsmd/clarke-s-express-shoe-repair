@@ -24,7 +24,7 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-The first preview CI run rejected the 12 MP HEIC conversion under its memory limit (136 other backend cases passed). An explicit decoder allocator cap did not resolve the hosted failure; bounded real-subprocess diagnostics now distinguish signal/timeout from handled errors. Local upload cases pass. Verify required CI before release. Reviewed environment-bound backup/updater scripts and units are installed on all three environments with preserved runtime configuration and keys. Complete the authorized release and all 13 live rows, then record final branch-specific revisions after the handoff/state commits.
+The first preview CI run rejected the 12 MP HEIC conversion under its memory limit (136 other backend cases passed). CI's inherited 16 MiB stack reproduced the failure locally. The decoder now starts with at most an 8 MiB stack; all nine upload cases pass under CI's inherited limit and the real container cap. The earlier allocator trial was removed. Verify required hosted CI before release. Reviewed environment-bound backup/updater scripts and units are installed on all three environments with preserved runtime configuration and keys. Complete the authorized release and all 13 live rows, then record final branch-specific revisions after the handoff/state commits.
 
 ## Blockers / waiting on
 
