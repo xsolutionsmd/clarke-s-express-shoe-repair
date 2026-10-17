@@ -26,14 +26,103 @@ Find out whether a valued shoe, boot, bag or leather item can be repaired, then 
 **Inferred needs to evaluate:** item/service context, damage description, preferred location/contact channel, estimated timing, and an understandable follow-up process. The owner letter emphasizes avoiding communication breakdowns. Any upload, scheduling, status or administration feature still needs selection and an operating workflow; this research does not adopt it. [S2][S4][S5][S6][S14][S15]
 
 ## Template site
-<!-- xs:template -->
-<!-- Chosen premium same-industry website: URL, why it won, runners-up with URLs,
-traits adopted (structure, section order, navigation, type scale, spacing, motion),
-and which collected media fills each role (hero video, wide shots, portraits, menu photos...). -->
+Selected 2026-10-17 by the template stage (Claude Opus 5.5 high) after live desktop
+(1440) and phone (375) inspection. Not a client approval.
+
+**Template: The Restory, https://www.the-restory.com/us-en** (luxury leather-goods
+restoration atelier), with its photo quote form at
+https://go.the-restory.com/request-a-quote. It won on polish: quiet editorial serif
+display, one black square CTA, wide margins, large tightly framed craft photography, a
+keyboard-operable before/after slider, and a photo intake that is a single calm card
+rather than a wizard. Its flow is the closest premium match to ours: describe the issue,
+add photos, leave details, staff assess and reply with a quote, emails at each stage,
+order history behind an account. It holds up at 375 px (no horizontal overflow; form
+controls inset 15 px from a full-bleed card). Behavior evidence is in
+[features.md](features.md#template-flow-notes).
+
+**Runners-up**
+- Rago Brothers, https://www.ragobrothers.com/ (family shop since 1911, the closest
+  in scale): best flow coverage (guest mail-in form, optional photo assessment with
+  guided slots, customer account, a retailer login on a repair-ticket platform), but a
+  dated pastel template with a boxed hero and heavy banner. We adopt its guided photo
+  wording, not its look.
+- Leather Spa, https://leatherspa.com/: a repair wizard, estimates, status and
+  payment, all behind a password account; a busy promo carousel with script type.
+  Confirms "check the status of your repairs" as a category norm.
+- SoleHeeled, https://soleheeled.com.au/: a price-first Typeform "instant quote" with
+  Stripe and numbered how-it-works steps; it conflicts with our no-prices rule and looks
+  mid-tier.
+
+**Limits:** no inspected site exposes its staff admin publicly (Rago's retailer and
+customer logins, Leather Spa and Restory accounts are all gated; no accounts were
+created). The admin follows the Oasis pattern, dressed in this public visual language.
+The Restory sells a priced package before photos; we keep its intake card and quote
+reply, and drop pricing, cart and checkout entirely.
+
+**Adopted traits (structure and quality only; no Restory text, photos, logo or code)**
+- *Navigation:* slim white header, wordmark left, four text links centered
+  (Repairs, Our work, Visit, Repair status), one black "Start a repair request"
+  button right; phone: wordmark centered, menu left, call icon right. An active
+  closure notice sits above the header as a single quiet band.
+- *Home section order:* split hero (full-height photo on one side, serif headline,
+  one sentence, one black CTA "Send photos for an estimate", text link to call Bel
+  Air) → a large serif statement in the shop's own voice → a work spread (before/after
+  slider only with an aligned pair, see media below) beside a tall detail photo →
+  service tiles (soles and heels; stretching and fit; bags and
+  leather goods; dye, clean and condition), square photos with serif titles and an
+  "Ask about this repair" link that preselects the form → how a request works, three
+  word-titled columns with no numbers (Send photos, We reply with an estimate, Drop off
+  and collect) → two location cards → status lookup band → craftsman story → compact
+  footer.
+- *Type scale:* high-contrast display serif, regular weight, tracking about 0.08em:
+  hero 88/96 desktop, 44/52 phone; section titles 48/58 desktop, 32/40 phone; card
+  titles 24/29. Body: humanist sans 16/24 with slight positive tracking (about
+  0.02em); labels and buttons in uppercase sans 13-14 px, tracking 0.08em.
+- *Spacing rhythm:* 8 px base; 40 px page gutters at 1440 (content up to 1360),
+  20 px on phones; section spacing 128 px desktop, 72 px phone; form card 640 px wide
+  on a tinted page with 48 px inner padding (24 px on phones, never full-bleed controls
+  touching the card edge).
+- *Controls:* square black primary buttons (2 px radius), quiet text-link secondaries,
+  1 px input borders dark enough for 3:1 non-text contrast (the template's pale
+  hairlines are not copied), 48 px control height, dashed dropzone.
+- *Motion character:* restrained. 150 ms colour/border transitions; images fade and
+  rise 8 px over 600 ms on entering view and replay on re-entry; slow 1.03 image scale
+  on tile hover; before/after handle follows pointer, arrow keys and Home/End. All off
+  under reduced motion. No carousels or moving ribbons.
+
+**Client-media mapping** (sha prefixes in [media.md](media.md); originals stay private)
+- Hero: `d600e63f8c01` (tan monk straps and sole, 2048 px), cropped to shoe and sole,
+  losing the busy pegboard. Phone hero: `6715d5e4ef37` (black cap-toe, red sole) as a
+  vertical crop.
+- Statement and detail: `30ab62c60233`, `1a4378dac4c8`.
+- Before/after: the slider needs a genuinely aligned before and after shot of one item.
+  `96bcc461523e` is two shoes side by side with no stated direction, so it is shown as a
+  static pair captioned only by what is visible. The build round may look for an aligned
+  pair among the Instagram carousel slides in the private library; if none exists, that
+  block becomes a two-photo detail spread, never a fake slider.
+- Service tiles: soles `5748995db348` / `c1552b8d1158`; fit `d331be06df16`
+  (third-party provenance noted); leather `46257a13947a` / `f4985fc6d5b6`; dye
+  `96bcc461523e`.
+- Visit cards: Bel Air `27e3eddd0df8` (rear shop, pharmacy landmark visible), Dundalk
+  `dc2c45602e65`.
+- Craftsman: `a5a7d729cc9f`, cropped around face and machine; `48128ddc0e6e`
+  secondary. Logo: `4899edee3a67` (black mark) on light grounds.
+- Shop photos have busy retail backgrounds. Crop tight to leather and use a warm paper
+  ground so the photos read as one set; never generated or competitor imagery.
 
 ## Visual direction
 
-Existing source cues: yellow brand/avatar treatment, a personal cobbler voice and detailed examples of repaired footwear/leather. **Inferred direction:** let real craftsmanship and legible service/location information carry the experience. The old site's colors and Raleway usage are observations, not an approved replacement palette/type system. Template/reference selection and media selection remain outside this research brief. [S1][S7][S17]
+Existing source cues: yellow brand/avatar treatment, a personal cobbler voice and detailed examples of repaired footwear/leather. [S1][S7][S17]
+
+**Chosen direction (2026-10-17, template stage):** a quiet workshop atelier. A warm
+paper ground (`#F5F1EA`), deep ink text (`#1B1A17`), oxblood accent (`#6B1E1A`, from
+the red wordmark and resoled heels) used for links, focus and status emphasis only, and
+warm grey hairlines (`#D9D2C5`). The brand yellow appears once, small, as the open-now
+pill (`#EBD46A` on ink text), not as a header colour. Free self-hosted fonts (no
+external runtime font requests): Libre Caslon Display for headings, Hanken Grotesk for
+body, labels and controls. Tokens and component rules live in
+[DESIGN.md](../DESIGN.md). Stitch outcome: one bounded attempt timed out with no screen
+(recorded in the private run note); implementation proceeds from these references.
 
 ## Accepted decisions and corrections
 

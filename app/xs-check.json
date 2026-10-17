@@ -1,0 +1,14 @@
+{
+  "requiredLinks": [
+    "tel:+14108368316",
+    "tel:+14433863800",
+    "sms:+14433863800",
+    "https://www.google.com/maps/place/Clarke's+Express+Shoe+Repair/data=!4m2!3m1!1s0x0:0x87b61559389294c5",
+    "https://www.google.com/maps/place/Clarke's+Express+Shoe+Repair/data=!4m2!3m1!1s0x89c80135e7828f67:0x9af1bbe4049ffff",
+    "https://www.facebook.com/clarkesexpressshoerepair/",
+    "https://www.instagram.com/clarke_the_shoe_doc/",
+    "/repair-request",
+    "/repair-status"
+  ],
+  "allowedExternalResources": []
+}

@@ -1,31 +1,31 @@
 # Handoff
 
 <!-- xs-status:start -->
-Pipeline status (generated 2026-10-17T13:28:44.712915+00:00):
+Pipeline status (generated 2026-10-17T19:48:51.044900+00:00):
 
 - **identity**: done
 - **research**: done
 - **spec**: done
-- **assets**: todo: finish coverage for website, instagram, facebook
-- **delivery**: todo: package the current library and record each part's verified Slack delivery to Abdul
-- **infra**: stale: features changed; review and record this stage again
-- **template**: stale: features changed; review and record this stage again
-- **build**: stale: features changed; review and record this stage again
+- **assets**: done
+- **delivery**: done
+- **infra**: done
+- **template**: done
+- **build**: done
 - **deploy**: todo: record verified deploy evidence
 <!-- xs-status:end -->
 
 ## Current state
 
-2026-10-17: functional/full pipeline started. Identity and factual research verified. No infrastructure or application release yet. Feature definition is in progress; media collection runs alongside it.
+2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Committed candidate 37fd564eb87aeffb6223d70b482c1662d483d57e passed 134 backend/API tests and 81 browser cases; the final command exited 0. Earlier backend recovery checks passed 61 recovery tests and 54 updater cases. All 19 code/visual findings are triaged and fixed, and the parent affected-screen visual pass is accepted. All 45/45 pre rows now pass. Four targeted backend/API cases and four browser scenarios closed the remaining evidence gaps without application changes. All 13 live rows remain.
 
 ## Last session
 
-Research covered 29 official pages, both Maps locations, social profiles and directory/press corroboration. Current Bel Air hours and Dundalk appointment instructions take precedence over stale components; unresolved operating policies remain in open-questions.md.
+Research covered 29 official pages, both Maps locations, social profiles and directory/press corroboration. Current Bel Air hours and Dundalk appointment instructions take precedence over stale components; unresolved operating policies remain in open-questions.md. The media library contains 453 images with 17 shortlist picks; coverage gaps are in media.md. Package delivery was verified after reload and by matching a downloaded copy's hash and size.
 
 ## Next step
 
-Finish feature definition, media coverage/shortlist and delivery; then provision three independent stateful environments if selected capabilities require them. Template/design starts only after these setup stages pass.
+The first preview CI run rejected the 12 MP HEIC conversion under its memory limit (136 other backend cases passed). CI's inherited 16 MiB stack reproduced the failure locally. The decoder now starts with at most an 8 MiB stack; all nine upload cases pass under CI's inherited limit and the real container cap. The earlier allocator trial was removed. Verify required hosted CI before release. Reviewed environment-bound backup/updater scripts and units are installed on all three environments with preserved runtime configuration and keys. Complete the authorized release and all 13 live rows, then record final branch-specific revisions after the handoff/state commits.
 
 ## Blockers / waiting on
 
-No access blocker currently. Owner-dependent policies are demo defaults/open questions until operational handover, not evidence of client approval.
+Review triage is complete. Release CI and live feature acceptance remain open. Real Google/Gmail requires a signed-in operator browser; the default profile is signed out and the Chrome automation fallback was stopped by its URL-verification safeguard. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.

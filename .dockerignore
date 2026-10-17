@@ -5,6 +5,9 @@
 !runtime/**
 !app/
 !app/**
+!tests/
+!tests/e2e/
+!tests/e2e/**
 **/node_modules
 **/dist
 **/.cache

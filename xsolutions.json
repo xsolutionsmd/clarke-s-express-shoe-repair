@@ -79,23 +79,35 @@
       "status": "pending"
     },
     "infra": {
-      "status": "stale",
-      "stale_reason": "features changed; review and record this stage again",
-      "invalidated": "2026-10-17T13:28:44.127866+00:00"
+      "status": "done",
+      "recorded": "2026-10-17T13:56:09.613216+00:00",
+      "evidence": [
+        "private/runs/infra-r1.md and receipts: all three independent HTTPS/noindex placeholders match remote branch heads; state persistence/backup restores, isolated OAuth clients, protections, push deployment and sibling preservation verified. Parent independently confirmed all three HTTP 200 and version.json."
+      ],
+      "revision": "7cc259a097d6a736a057d84726eda6ae74ffbfc7"
     },
     "template": {
-      "status": "stale",
-      "stale_reason": "features changed; review and record this stage again",
-      "invalidated": "2026-10-17T13:28:44.127870+00:00"
+      "status": "done",
+      "recorded": "2026-10-17T14:13:22.207824+00:00",
+      "evidence": [
+        "The Restory reference inspected at desktop and 375px; DESIGN.md and kb/design-brief.md recorded. Private runs/template-r1.md includes REA failure and bounded Stitch fallback; post-submit states unobserved. Parent verified saved form screenshots."
+      ]
     },
     "build": {
-      "status": "stale",
-      "stale_reason": "features changed; review and record this stage again",
-      "invalidated": "2026-10-17T13:28:44.127873+00:00"
+      "status": "done",
+      "recorded": "2026-10-17T19:48:13.802420+00:00",
+      "evidence": [
+        "45/45 pre acceptance pass; final committed check exit0 134 backend and81 browser; R6 targeted4 backend and4 browser pass with no runtime changes; 19 findings fixed; parent visual accepted visual-r5.md; real providers and13 live rows remain deployment checks"
+      ],
+      "revision": "37fd564eb87aeffb6223d70b482c1662d483d57e",
+      "inputs_sha256": {
+        "kb/features.md": "df4d3e80963d060440567a6743cc44b91254e597b10d1a63c357b33435502f8c",
+        "kb/design-brief.md": "8d7819e43a68578dcddb12ac7707a01266797d56258868a71ef254df28e7ca9b"
+      }
     },
     "deploy": {
       "status": "pending"
     }
   },
-  "updated": "2026-10-17T13:28:44.276422+00:00"
+  "updated": "2026-10-17T19:48:13.804023+00:00"
 }

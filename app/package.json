@@ -1,15 +1,21 @@
 {
-  "name": "xs-static-site",
+  "name": "clarke-s-express-shoe-repair-web",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "X Solutions static website",
+  "description": "Clarke's Express Shoe Repair website, repair request, status and staff admin (browser source)",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080 --strictPort",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 8080 --strictPort",
-    "check": "vite build && node scripts/check.mjs"
+    "lint": "eslint --config src/eslint.config.mjs --max-warnings 0 src vite.config.mjs",
+    "check": "npm run lint && vite build && node scripts/check.mjs"
   },
   "engines": { "node": "^20.19.0 || >=22.12.0" },
-  "devDependencies": { "vite": "^7.3.7" }
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0",
+    "vite": "^7.3.7"
+  }
 }
