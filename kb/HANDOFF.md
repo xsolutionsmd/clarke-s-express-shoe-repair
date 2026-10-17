@@ -1,5 +1,9 @@
 # Handoff
 
+Release isolation checkpoint: production was released through PR #2 as
+`f8d72bd8f7ef84a0814c8706ad6a02887f86b4fc`. This handoff-only checkpoint exercises
+the independent Derek preview publisher; application files are unchanged.
+
 <!-- xs-status:start -->
 Pipeline status (generated 2026-10-17T19:48:51.044900+00:00):
 
