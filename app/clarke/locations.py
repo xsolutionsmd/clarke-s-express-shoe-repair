@@ -102,8 +102,9 @@ def locations(c,stamp=None):
     if next_open and next_open>stamp:changes.append(next_open)
     return {'asOf':iso(stamp),'validUntil':iso(min(changes)),'timezone':'America/New_York','hoursVersion':hour['version'] if hour else None,'locations':[BEL_AIR|dict(weeklyHours=days,state=state,stateText=state_text,closesAt=iso(end),nextOpensAt=iso(next_open),activeNotice=banner('bel_air')),DUNDALK|dict(weeklyHours=None,state='appointment_only',stateText='By appointment, call or text 443-386-3800',closesAt=None,nextOpensAt=None,activeNotice=banner('dundalk'))]}
 
-def route_message(location):
+def route_message(location,pickup=False):
     if location=='dundalk':return 'Call or text 443-386-3800 to arrange a Dundalk visit. All repairs are performed in Bel Air.'
+    if pickup:return 'Collect your item at 23 South Main St. (REAR), Burns Alley, Bel Air. Call 410-836-8316 before visiting if you need to check the hours.'
     return 'Bring your item to 23 South Main St. (REAR), Burns Alley, Bel Air. Call 410-836-8316 before visiting if you need to check the hours.'
 
 @bp.get('/api/v1/locations')

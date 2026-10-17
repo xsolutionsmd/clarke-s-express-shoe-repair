@@ -88,7 +88,7 @@ export default async function team({ main, navigate, sessionExpired }) {
   }
 
   function drawInvites() {
-    if (!invites.length) { replace(invitesBox, emptyState('No invitations', 'Invite staff by email below.')); return; }
+    if (!invites.length) { replace(invitesBox, emptyState('No invitations', 'Use the invitation form to invite staff by email.')); return; }
     replace(invitesBox, h('ul', { class: 'member-list' }, invites.map(inv => {
       const [label, tone] = INVITE_STATE[inv.state] || [inv.state, 'neutral'];
       const revoke = inv.state === 'pending' ? button('Withdraw', { variant: 'quiet', class: 'btn-small' }) : null;

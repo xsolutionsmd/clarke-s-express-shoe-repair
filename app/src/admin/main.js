@@ -6,7 +6,7 @@ import '../styles/forms.css';
 import '../styles/admin.css';
 import { h, icon, replace, button, hydrateIcons, announce } from '../lib/dom.js';
 import { ApiError } from '../lib/api.js';
-import { session, loadSession, isAdmin, logout, startGoogle, pageHead, inlineAlert } from './core.js';
+import { session, loadSession, isAdmin, beginLogout, logoutPending, startGoogle, pageHead, inlineAlert } from './core.js';
 
 const root = document.getElementById('admin-root');
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -51,9 +51,9 @@ function buildLayout() {
     h('ul', null, NAV.filter(([, , , adminOnly]) => !adminOnly || isAdmin()).map(([id, label, href]) => h('li', null, h('a', { href, 'data-nav': '', dataset: { navId: id } }, label)))));
   const member = session.data.member;
   const signOut = button('Sign out', { variant: 'quiet', class: 'btn-small' });
-  signOut.addEventListener('click', async () => {
-    await logout();
-    navigate('/admin/login?signedOut=1', { replaceState: true });
+  signOut.addEventListener('click', () => {
+    beginLogout();
+    navigate('/admin/login', { replaceState: true });
   });
   const bar = h('header', { class: 'admin-bar' },
     h('div', { class: 'admin-bar-inner' },
@@ -84,6 +84,7 @@ function markNav(id) {
     if (a.dataset.navId === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
   layout.bar.classList.remove('is-open');
+  layout.bar.querySelector('.admin-menu-toggle').setAttribute('aria-expanded', 'false');
 }
 
 function sessionExpired() {
@@ -114,16 +115,26 @@ async function render() {
   cleanup?.();
   cleanup = null;
   let path = location.pathname;
+  if (logoutPending() && path !== '/admin/login') { navigate('/admin/login', { replaceState: true }); return; }
+  const isCurrent = () => seq === renderSeq;
+  const context = {
+    isCurrent,
+    navigate: (...args) => { if (isCurrent()) navigate(...args); },
+    sessionExpired: () => { if (isCurrent()) sessionExpired(); },
+  };
   if (/^\/admin\/?$/.test(path)) { history.replaceState(null, '', '/admin/requests'); path = '/admin/requests'; }
   const route = ROUTES.find(r => r.pattern.test(path));
   if (route?.public) {
     layout = null;
+    replace(root);
     root.removeAttribute('aria-busy');
     const mod = await route.view();
     if (seq !== renderSeq) return;
     const host = h('main', { id: 'admin-main', class: 'admin-public', tabindex: '-1' });
     replace(root, host);
-    cleanup = await mod.default({ main: host, navigate, params: [], sessionExpired });
+    const dispose = await mod.default({ main: host, params: [], ...context });
+    if (!isCurrent()) { dispose?.(); return; }
+    cleanup = dispose;
     hydrateIcons(root);
     return;
   }
@@ -148,7 +159,11 @@ async function render() {
   if (!layout) layout = buildLayout();
   layout.expired.hidden = true;
   root.removeAttribute('aria-busy');
-  const main = layout.main;
+  // Each route owns a separate host. Late responses can only write to a detached
+  // host, and their cleanup cannot replace the current route's cleanup.
+  const main = h('main', { id: 'admin-main', class: 'admin-main', tabindex: '-1' });
+  layout.main.replaceWith(main);
+  layout.main = main;
   markNav(route?.nav);
   if (!route) { notFound(main); return; }
   if (route.admin && !isAdmin()) { forbidden(main); document.title = 'No access | Staff | Clarke’s Express'; return; }
@@ -157,7 +172,9 @@ async function render() {
   if (seq !== renderSeq) return;
   const params = path.match(route.pattern).slice(1);
   try {
-    cleanup = await mod.default({ main, navigate, params, sessionExpired, forbidden: () => forbidden(main) });
+    const dispose = await mod.default({ main, params, ...context, forbidden: () => forbidden(main) });
+    if (!isCurrent()) { dispose?.(); return; }
+    cleanup = dispose;
   } catch (error) {
     if (seq !== renderSeq) return;
     if (error instanceof ApiError && error.status === 401) { sessionExpired(); return; }

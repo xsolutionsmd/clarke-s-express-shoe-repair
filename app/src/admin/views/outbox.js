@@ -15,7 +15,7 @@ export default async function outbox({ main, params, sessionExpired }) {
   const ctx = { sessionExpired };
   const id = params[0];
   let mail = await get(`/admin/outbox/${encodeURIComponent(id)}`);
-  const view = h('div');
+  const view = h('div', { class: 'outbox-view' });
   let retryKey = null;
 
   function draw() {

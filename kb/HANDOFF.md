@@ -16,7 +16,7 @@ Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend review fixes pass 121 backend/API tests, 61 recovery tests and 54 updater cases. Frontend implementation is complete; its combined check passed all 44 browser cases at 1440/375. Parent verification at the committed revision, final code review, hands-on acceptance and live release remain outstanding.
+2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. The completed review fixes pass 134 backend/API tests and 81 browser cases. Earlier backend recovery checks passed 61 recovery tests and 54 updater cases. All 19 code/visual findings are triaged and fixed. Committed-candidate visual acceptance and live release remain outstanding.
 
 ## Last session
 
@@ -24,8 +24,8 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Run scripts/app.py check --keep-candidate at the committed source revision; independent code review and parent desktop/tablet/phone walkthrough follow. Triage the development Vite-config override and customer-email item labels reported by frontend. Inspect remaining management pages, photo zoom/print, keyboard, enlarged text and motion recordings. All 45 pre-release and 13 live acceptance rows remain fail pending complete scenario evidence; actual Google/Gmail checks are still required.
+Verify the committed candidate and affected desktop/tablet/phone flows, then map the 45 pre-release scenarios to evidence. All 13 live rows and real Google/Gmail checks remain outstanding. The alleged development Vite override was excluded after source inspection; email labels and all accepted review findings are fixed. Install the updated environment-bound backup restore scripts on all three hosts during release.
 
 ## Blockers / waiting on
 
-No provider blocker: Claude resumed and completed frontend. Overall review triage and feature acceptance remain open. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
+Review triage is complete. Feature acceptance and release remain open. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.

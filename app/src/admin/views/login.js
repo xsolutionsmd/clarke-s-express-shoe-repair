@@ -1,7 +1,7 @@
 // /admin/login: Google is the only sign-in. Callback failures arrive as ?error=<code>.
 import { h, icon, replace, button, setBusy } from '../../lib/dom.js';
 import { ApiError } from '../../lib/api.js';
-import { loadSession, startGoogle, safeReturnTo, inlineAlert, session } from '../core.js';
+import { loadSession, startGoogle, safeReturnTo, inlineAlert, session, logout, logoutPending } from '../core.js';
 
 export const LOGIN_ERRORS = {
   signin_cancelled: 'Sign-in was cancelled. Try again when you’re ready.',
@@ -13,16 +13,39 @@ export const LOGIN_ERRORS = {
   sender_permission_denied: 'Gmail permission wasn’t granted, so the sender wasn’t connected. Sign in and try again from Emails.',
 };
 
-export default async function login({ main, navigate }) {
+export default async function login({ main, navigate, isCurrent }) {
   const params = new URLSearchParams(location.search);
   const code = params.get('error');
   const returnTo = safeReturnTo(params.get('returnTo') || '/admin/requests');
-  const signedOut = params.has('signedOut');
+  let signedOut = false;
+  if (logoutPending()) {
+    const slot = h('div');
+    const retry = button('Retry sign out', { variant: 'primary' });
+    const revoke = async () => {
+      setBusy(retry, true, 'Signing out');
+      try {
+        await logout();
+        if (!isCurrent()) return;
+        signedOut = true;
+        await showLogin();
+      } catch {
+        if (isCurrent()) replace(slot, inlineAlert('Sign-out could not be confirmed. Staff details and drafts were cleared from this tab, but this browser may still be signed in. Reconnect and retry sign out.'));
+      } finally { setBusy(retry, false); }
+    };
+    retry.addEventListener('click', revoke);
+    replace(main, h('div', { class: 'login-card' }, h('h1', { class: 'form-title-sm' }, 'Finish signing out'), slot, retry));
+    await revoke();
+    return;
+  }
+  await showLogin();
+
+  async function showLogin() {
   if (location.search) history.replaceState(null, '', '/admin/login');
 
   if (!signedOut && !code) {
     try {
       await loadSession();
+      if (!isCurrent()) return;
       navigate(returnTo, { replaceState: true });
       return;
     } catch (error) {
@@ -30,6 +53,7 @@ export default async function login({ main, navigate }) {
       if (!(error instanceof ApiError) || error.status !== 401) { /* show the sign-in card anyway */ }
     }
   }
+  if (!isCurrent()) return;
 
   const slot = h('div', { class: 'form-alert-slot' });
   if (code) replace(slot, inlineAlert(LOGIN_ERRORS[code] || 'Sign-in didn’t complete. Try again.'));
@@ -57,4 +81,5 @@ export default async function login({ main, navigate }) {
     h('p', { class: 'small' }, h('a', { href: '/' }, icon('arrow-left', { size: 16 }), ' Back to the website'))));
   main.querySelector('h1').focus({ preventScroll: true });
   document.title = 'Staff sign-in | Clarke’s Express';
+  }
 }

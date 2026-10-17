@@ -3,9 +3,9 @@
 import { h, icon, replace, button, setBusy } from '../../lib/dom.js';
 import { get, post, patch, ApiError } from '../../lib/api.js';
 import { uuid } from '../../lib/store.js';
-import { textField, setError, focusTarget } from '../../lib/fields.js';
+import { textField, selectField, setError, focusTarget } from '../../lib/fields.js';
 import { formatLongDateTime } from '../../lib/format.js';
-import { pageHead, panel, showError, inlineAlert, getDraft, saveDraft, clearDraft, when, badge } from '../core.js';
+import { pageHead, panel, showError, inlineAlert, getDraft, saveDraft, clearDraft, when, badge, draftComparison } from '../core.js';
 
 const KEY = 'settings';
 
@@ -47,6 +47,13 @@ export default async function settings({ main, sessionExpired }) {
   const delivery = h('input', { type: 'checkbox', id: 'set-delivery', checked: v.emailDeliveryEnabled });
   const expectation = textField({ name: 'responseExpectation', label: 'Response target (staff only)', optional: true, value: v.responseExpectation, attrs: { maxlength: 300 },
     help: 'For planning only. It is never shown to customers.' });
+  const retentionAction = selectField({ name: 'retentionAction', label: 'Retention change',
+    options: [['preserve', 'Keep the current and scheduled policy'], ['change', 'Set or replace the retention policy'], ['cancel', 'Cancel the scheduled change']], value: v.retentionAction || 'preserve' });
+  const pendingSlot = h('div');
+  function renderPending() {
+    replace(pendingSlot, h('p', { class: 'small muted' }, `Active policy: photos ${data.photoRetentionDays} days; status links ${data.closedLinkDays} days.`),
+      data.pendingRetention ? inlineAlert(`Scheduled change: photos ${data.pendingRetention.photoRetentionDays} days, links ${data.pendingRetention.closedLinkDays} days, from ${formatLongDateTime(data.pendingRetention.effectiveAt)}.`, 'info') : h('p', { class: 'small muted' }, 'No scheduled retention change.'));
+  }
   const photoDays = textField({ name: 'photoRetentionDays', label: 'Delete photos after closing, days', type: 'number', value: v.photoRetentionDays, attrs: { min: 1, max: 730, step: 1, inputmode: 'numeric' } });
   const linkDays = textField({ name: 'closedLinkDays', label: 'Status links stop working after closing, days', type: 'number', value: v.closedLinkDays, attrs: { min: 1, max: 365, step: 1, inputmode: 'numeric' } });
   const retentionPreview = h('div');
@@ -56,11 +63,15 @@ export default async function settings({ main, sessionExpired }) {
   const slot = h('div', { class: 'form-alert-slot' });
   const submit = h('button', { type: 'submit', class: 'btn btn-primary btn-small' }, h('span', { class: 'btn-label' }, 'Save settings'));
 
-  const reducing = () => Number(photoDays.input.value) < data.photoRetentionDays || Number(linkDays.input.value) < data.closedLinkDays;
-  const syncRetention = () => { confirmWrap.hidden = !reducing(); if (!reducing()) confirmReduce.checked = false; };
+  const reducing = () => retentionAction.input.value === 'change' && (Number(photoDays.input.value) < data.photoRetentionDays || Number(linkDays.input.value) < data.closedLinkDays);
+  const syncRetention = () => {
+    const change = retentionAction.input.value === 'change';
+    photoDays.input.disabled = !change; linkDays.input.disabled = !change; previewBtn.disabled = !change;
+    confirmWrap.hidden = !reducing(); if (!reducing()) confirmReduce.checked = false;
+  };
   const syncPause = () => { pauseMsg.wrap.hidden = accepting.checked; };
   const fields = () => ({
-    intakeAccepting: accepting.checked, intakePauseMessage: pauseMsg.input.value, notificationEmails: emailInputs.map(i => i.value),
+    retentionAction: retentionAction.input.value, intakeAccepting: accepting.checked, intakePauseMessage: pauseMsg.input.value, notificationEmails: emailInputs.map(i => i.value),
     emailDeliveryEnabled: delivery.checked, responseExpectation: expectation.input.value, photoRetentionDays: photoDays.input.value, closedLinkDays: linkDays.input.value,
   });
   const persist = () => { const d = getDraft(KEY); saveDraft(KEY, { fields: fields(), baseVersion: d?.baseVersion ?? data.version, key: d?.key, payload: d?.payload }); };
@@ -91,7 +102,7 @@ export default async function settings({ main, sessionExpired }) {
       data.demoMode ? h('p', { class: 'small muted' }, badge('Demo mode', 'demo'), ' Only addresses on the private test list receive email. Everything else is kept as a preview in the email log.') : null),
     panel('Planning', expectation.wrap),
     panel('Retention',
-      data.pendingRetention ? inlineAlert(`Scheduled change: photos ${data.pendingRetention.photoRetentionDays} days, links ${data.pendingRetention.closedLinkDays} days, from ${formatLongDateTime(data.pendingRetention.effectiveAt)}.`, 'info') : null,
+      pendingSlot, retentionAction.wrap,
       h('div', { class: 'grid-2' }, photoDays.wrap, linkDays.wrap), h('div', { class: 'form-actions' }, previewBtn), retentionPreview, confirmWrap),
     slot,
     h('div', { class: 'form-actions' }, submit, h('span', { class: 'small muted' }, `Last saved ${when(data.updatedAt)}`)));
@@ -103,6 +114,7 @@ export default async function settings({ main, sessionExpired }) {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     replace(slot);
+    if (getDraft(KEY) && getDraft(KEY).baseVersion !== data.version) { compare(); return; }
     const f = fields();
     const errors = [];
     const fail = (t, m) => { setError(t, m); errors.push(t); };
@@ -126,8 +138,9 @@ export default async function settings({ main, sessionExpired }) {
       expectedVersion: d.baseVersion ?? data.version, intakeAccepting: f.intakeAccepting,
       intakePauseMessage: f.intakeAccepting ? (f.intakePauseMessage.trim() || null) : f.intakePauseMessage.trim(),
       notificationEmails: emails, emailDeliveryEnabled: f.emailDeliveryEnabled, responseExpectation: f.responseExpectation.trim() || null,
-      photoRetentionDays: pd, closedLinkDays: ld,
     };
+    if (f.retentionAction === 'change') Object.assign(body, { photoRetentionDays: pd, closedLinkDays: ld });
+    if (f.retentionAction === 'cancel') Object.assign(body, { photoRetentionDays: data.photoRetentionDays, closedLinkDays: data.closedLinkDays });
     if (reducing()) body.confirmRetentionReduction = true;
     const text = JSON.stringify(body);
     const key = d.key && d.payload === text ? d.key : uuid();
@@ -139,6 +152,11 @@ export default async function settings({ main, sessionExpired }) {
       data = await get('/admin/settings');
       replace(slot, inlineAlert(result.retentionEffectiveAt ? `Settings saved. Shorter retention takes effect ${formatLongDateTime(result.retentionEffectiveAt)}.` : 'Settings saved.', 'ok'));
       confirmReduce.checked = false;
+      retentionAction.input.value = 'preserve';
+      photoDays.input.value = String(data.photoRetentionDays);
+      linkDays.input.value = String(data.closedLinkDays);
+      renderPending();
+      replace(retentionPreview);
       syncRetention();
     } catch (error) {
       if (error instanceof ApiError && error.code === 'SENDER_DISCONNECTED') {
@@ -156,13 +174,32 @@ export default async function settings({ main, sessionExpired }) {
       } else {
         showError(slot, error, ctx, { onReload: async () => {
           data = await get('/admin/settings');
-          const cur = getDraft(KEY);
-          saveDraft(KEY, { ...cur, baseVersion: data.version, key: null, payload: null });
-          replace(slot, inlineAlert('Someone else saved settings. Your edits are still in the form; check them against the latest and save again.', 'info'));
+          renderPending();
+          compare();
         } });
       }
     } finally { setBusy(submit, false); }
   });
 
+  function compare() {
+    const f = fields();
+    replace(slot, draftComparison({ rows: [
+      ['Accepting requests', data.intakeAccepting, f.intakeAccepting],
+      ['Pause message', data.intakePauseMessage, f.intakePauseMessage],
+      ['Alert addresses', data.notificationEmails, f.notificationEmails],
+      ['Email delivery', data.emailDeliveryEnabled, f.emailDeliveryEnabled],
+      ['Response target', data.responseExpectation, f.responseExpectation],
+      ['Photo retention (days)', data.photoRetentionDays, f.retentionAction === 'change' ? f.photoRetentionDays : 'Keep active policy'],
+      ['Link retention (days)', data.closedLinkDays, f.retentionAction === 'change' ? f.closedLinkDays : 'Keep active policy'],
+      ['Scheduled policy', data.pendingRetention ? `Photos ${data.pendingRetention.photoRetentionDays}, links ${data.pendingRetention.closedLinkDays}, from ${formatLongDateTime(data.pendingRetention.effectiveAt)}` : 'None', retentionAction.input.selectedOptions[0].textContent],
+    ], onReapply: () => {
+      saveDraft(KEY, { fields: fields(), baseVersion: data.version, key: null, payload: null });
+      confirmReduce.checked = false;
+      syncRetention();
+      replace(slot, inlineAlert('Draft reapplied. Review your settings and save when ready.', 'info'));
+    } }));
+  }
+  renderPending();
+  if (saved && saved.baseVersion !== data.version) compare();
   replace(main, pageHead('Settings', { sub: 'Changes apply to this environment only. Sign-in, the sender connection and test lists are managed elsewhere.' }), form);
 }

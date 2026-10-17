@@ -6,7 +6,7 @@ import '../styles/forms.css';
 import { initChrome } from '../lib/chrome.js';
 import { get, post, bootstrap, ApiError, describeRetry } from '../lib/api.js';
 import { h, replace, button, setBusy, announce } from '../lib/dom.js';
-import { read, write, remove, uuid, HOUR } from '../lib/store.js';
+import { read, write, remove, keys, uuid, HOUR } from '../lib/store.js';
 import { textField, setError, alertBox, callFallback } from '../lib/fields.js';
 import { STATUS, CLOSED, RESPONSE_LABELS, itemLabel, statusLabel } from '../lib/constants.js';
 import { formatDateTime, formatLongDateTime, moneyRange } from '../lib/format.js';
@@ -18,7 +18,10 @@ import { initLookup, saveStatusToken, readStatusToken, clearStatusToken } from '
   const params = new URLSearchParams(location.hash.slice(1));
   const token = params.get('token');
   if (location.hash) history.replaceState(null, '', '/repair-status');
-  if (token) saveStatusToken(token);
+  if (token) {
+    if (token !== readStatusToken()) for (const key of keys('resp.')) remove(key);
+    saveStatusToken(token);
+  }
 })();
 
 initChrome();
@@ -31,8 +34,27 @@ let olderCursor = null;
 let locPayload = null;
 let lastLoad = 0;
 let loading = false;
+let requestGeneration = 0;
+// Fresh page state is already empty. Preserve this same repair's unsent reply
+// across reload; reset it only when its capability is replaced or forgotten.
+let activeToken = readStatusToken();
+let refreshError = null;
 
-initLookup(lookupSection.querySelector('[data-lookup]'), { onSuccess: () => { lookupSection.hidden = true; load(); } });
+function resetRequest(token = null) {
+  requestGeneration += 1;
+  activeToken = token;
+  status = null;
+  olderEvents = [];
+  olderCursor = null;
+  lastLoad = 0;
+  loading = false;
+  refreshError = null;
+  delete app.dataset.focused;
+  for (const key of keys('resp.')) remove(key);
+}
+const currentRequest = (generation, token) => generation === requestGeneration && token === readStatusToken();
+
+initLookup(lookupSection.querySelector('[data-lookup]'), { onSuccess: () => { resetRequest(readStatusToken()); lookupSection.hidden = true; load(); } });
 
 watchLocations(payload => { locPayload = payload; renderLocation(); });
 
@@ -46,6 +68,8 @@ function showLookup(intro) {
 
 async function load({ quiet = false } = {}) {
   const token = readStatusToken();
+  if (token !== activeToken) resetRequest(token);
+  const generation = requestGeneration;
   if (!token) {
     showLookup(h('div', { class: 'form-card' },
       h('h1', { class: 'form-title', tabindex: '-1' }, 'Repair status'),
@@ -56,20 +80,27 @@ async function load({ quiet = false } = {}) {
   loading = true;
   if (!quiet) app.setAttribute('aria-busy', 'true');
   try {
-    status = await get('/status', { bearer: token });
+    const fresh = await get('/status', { bearer: token });
+    if (!currentRequest(generation, token)) return;
+    status = fresh;
+    refreshError = null;
     lastLoad = Date.now();
     lookupSection.hidden = true;
     render();
     if (quiet) announce(`Status: ${status.statusLabel || statusLabel(status.status)}.`);
   } catch (error) {
+    if (!currentRequest(generation, token)) return;
     if (error instanceof ApiError && (error.code === 'STATUS_UNAVAILABLE' || error.status === 404 || error.status === 401)) {
       clearStatusToken();
-      status = null;
+      resetRequest();
       showLookup(h('div', { class: 'form-card' },
         h('h1', { class: 'form-title', tabindex: '-1' }, 'This request is unavailable'),
         h('p', { class: 'form-lede' }, 'The link may be incomplete, or the request may have been closed for a while. Check your details below or call the shop.'),
         h('div', { class: 'receipt-list' }, callFallback())));
-    } else if (!quiet || !status) {
+    } else if (status) {
+      refreshError = 'Could not refresh. The last loaded details are still shown. Check your connection and try Refresh again.';
+      render();
+    } else {
       const message = error instanceof ApiError && error.code === 'RATE_LIMITED'
         ? `Too many checks in a short time. ${describeRetry(error) || 'Please wait a minute.'}`
         : error.message;
@@ -78,8 +109,10 @@ async function load({ quiet = false } = {}) {
         alertBox(message, { extra: [callFallback(), h('div', { class: 'form-actions' }, button('Try again', { variant: 'secondary', class: 'btn-small', onclick: () => load() }, 'refresh'))] })));
     }
   } finally {
-    loading = false;
-    app.removeAttribute('aria-busy');
+    if (generation === requestGeneration) {
+      loading = false;
+      app.removeAttribute('aria-busy');
+    }
   }
 }
 
@@ -130,6 +163,9 @@ function offerPanel(s) {
 }
 
 function responseControls(s, offer, allowed) {
+  const generation = requestGeneration;
+  const token = activeToken;
+  const current = () => currentRequest(generation, token);
   const saved = responseStore(offer.id);
   const wrap = h('div', { class: 'response' });
   const status = h('div', { class: 'form-alert-slot', 'aria-live': 'polite' });
@@ -163,15 +199,19 @@ function responseControls(s, offer, allowed) {
     replace(status);
     try {
       await bootstrap();
+      if (!current()) return;
       const result = await post('/status/responses', { offerId: offer.id, expectedVersion: s.version, choice, phone: phoneValue },
-        { bearer: readStatusToken(), idempotencyKey: store.key });
+        { bearer: token, idempotencyKey: store.key });
+      if (!current()) return;
       remove(`resp.${offer.id}`);
       await load({ quiet: true });
+      if (!current()) return;
       const note = app.querySelector('[data-response-note]');
       const text = `You replied “${RESPONSE_LABELS[choice]}”. ${result.message || 'Your response is recorded.'}`;
       if (note) replace(note, alertBox(text, { tone: 'ok' }));
       announce(text);
     } catch (error) {
+      if (!current()) return;
       setBusy(btn, false);
       if (!(error instanceof ApiError)) throw error;
       if (['RESPONSE_ALREADY_RECORDED', 'OFFER_SUPERSEDED', 'VERSION_CONFLICT', 'INVALID_TRANSITION'].includes(error.code)) {
@@ -179,13 +219,14 @@ function responseControls(s, offer, allowed) {
           : error.code === 'RESPONSE_ALREADY_RECORDED' ? 'A reply to this estimate was already recorded.'
             : 'This request was updated. Please review the latest details before replying.';
         await load({ quiet: true });
+        if (!current()) return;
         const note = app.querySelector('[data-response-note]');
         if (note) replace(note, alertBox(message, { tone: 'info' }));
         return;
       }
       if (error.fields?.phone) { setError(phone.input, error.fields.phone); phone.input.focus(); return; }
       replace(status, alertBox(error.code === 'RATE_LIMITED' ? `Too many attempts. ${describeRetry(error)}` : error.message, { extra: callFallback() }));
-    }
+    } finally { if (btn.isConnected) setBusy(btn, false); }
   };
 
   const labels = {
@@ -238,14 +279,18 @@ function historyList(s) {
 }
 
 async function loadOlder(event) {
+  const generation = requestGeneration;
+  const token = activeToken;
   const btn = event.currentTarget;
   setBusy(btn, true, 'Loading');
   try {
-    const page = await get('/status/events', { bearer: readStatusToken(), query: { limit: 25, cursor: olderCursor || undefined } });
+    const page = await get('/status/events', { bearer: token, query: { limit: 25, cursor: olderCursor || undefined } });
+    if (!currentRequest(generation, token)) return;
     olderEvents = [...olderEvents, ...page.items];
     olderCursor = page.nextCursor || false;
     render();
   } catch (error) {
+    if (!currentRequest(generation, token)) return;
     setBusy(btn, false);
     if (error instanceof ApiError && error.code === 'INVALID_CURSOR') { olderCursor = null; olderEvents = []; }
     announce('Couldn’t load earlier updates.');
@@ -271,8 +316,8 @@ function render() {
   const s = status;
   const label = s.statusLabel || statusLabel(s.status);
   const refresh = button('Refresh', { variant: 'quiet', class: 'btn-small' }, 'refresh');
-  refresh.addEventListener('click', async () => { setBusy(refresh, true, 'Refreshing'); await load({ quiet: true }); });
-  const forget = h('button', { type: 'button', class: 'link-button', onclick: () => { clearStatusToken(); status = null; load(); } }, 'Forget this link in this tab');
+  refresh.addEventListener('click', async () => { setBusy(refresh, true, 'Refreshing'); try { await load({ quiet: true }); } finally { setBusy(refresh, false); } });
+  const forget = h('button', { type: 'button', class: 'link-button', onclick: () => { clearStatusToken(); resetRequest(); load(); } }, 'Forget this link in this tab');
   replace(app,
     h('article', { class: 'form-card status-card' },
       h('div', { class: 'status-head' },
@@ -282,6 +327,7 @@ function render() {
       h('div', { class: 'form-section' },
         progressLine(s),
         s.customerMessage ? h('div', { class: 'shop-message' }, h('p', { class: 'label-caps' }, 'A note from the shop'), h('p', null, s.customerMessage)) : null,
+        refreshError ? alertBox(refreshError) : null,
         h('div', { 'data-response-note': '' }),
         offerPanel(s),
         s.dropoffLocation === 'dundalk' && !s.appointmentConfirmed && !CLOSED.has(s.status) ? h('p', { class: 'small muted' }, 'Dundalk visits are arranged by phone or text. No appointment is booked until the shop confirms one with you.') : null,

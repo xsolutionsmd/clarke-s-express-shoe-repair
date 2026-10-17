@@ -10,33 +10,58 @@ import { formatDateTime, formatLocalDate, formatPhone, moneyRange, parseCents, b
 import { watchLocations, findLocation } from '../../lib/locations.js';
 import {
   pageHead, statusBadge, deliveryBadges, badge, panel, inlineAlert, showError, confirmDialog, copyText,
-  getDraft, saveDraft, clearDraft, bumpDrafts, isAdmin, memberId, when, pager,
+  getDraft, saveDraft, clearDraft, bumpDrafts, isAdmin, memberId, when, pager, draftComparison,
 } from '../core.js';
 
 const STATUS_CHOICES = Object.entries(STATUS).filter(([s]) => s !== 'estimate_sent' && s !== 'needs_visit');
 const OFFER_FROM = new Set(['new', 'reviewing', 'estimate_sent', 'needs_visit']);
 
-export default async function detail({ main, params, sessionExpired }) {
+export default async function detail({ main, params, sessionExpired, isCurrent }) {
   const id = params[0];
   const base = `/admin/requests/${encodeURIComponent(id)}`;
-  const state = { detail: null, contact: null, offers: [], offersCursor: null, notes: [], notesCursor: null, events: [], eventsCursor: null, members: new Map(), locations: null };
+  const state = { detail: null, contact: null, offers: [], offersCursor: null, notes: [], notesCursor: null, events: [], eventsCursor: null, members: new Map(), locations: null, errors: {} };
   const ctx = { sessionExpired };
   let stopLocations = null;
 
   // ---------- loading ----------
+  const limits = { offers: 10, notes: 25, events: 25 };
+  async function loadPanel(name, cursor) {
+    try {
+      const page = await get(`${base}/${name}`, { query: { limit: limits[name], cursor } });
+      state[name] = cursor ? [...state[name], ...page.items] : page.items;
+      state[`${name}Cursor`] = page.nextCursor;
+      delete state.errors[name];
+    } catch (error) {
+      state.errors[name] = { error, cursor };
+      if (error instanceof ApiError && error.status === 401) sessionExpired();
+    }
+  }
+  async function loadContact() {
+    try { state.contact = await get(`${base}/contact-actions`); delete state.errors.contact; }
+    catch (error) {
+      state.errors.contact = { error };
+      if (error instanceof ApiError && error.status === 401) sessionExpired();
+    }
+  }
   async function loadAll() {
-    const [detailData, contact, offers, notes, events] = await Promise.all([
-      get(base),
-      get(`${base}/contact-actions`).catch(() => null),
-      get(`${base}/offers`, { query: { limit: 10 } }).catch(() => ({ items: [], nextCursor: null })),
-      get(`${base}/notes`, { query: { limit: 25 } }).catch(() => ({ items: [], nextCursor: null })),
-      get(`${base}/events`, { query: { limit: 25 } }).catch(() => ({ items: [], nextCursor: null })),
-    ]);
+    const [detailData] = await Promise.all([get(base), loadContact(), ...Object.keys(limits).map(name => loadPanel(name))]);
     state.detail = detailData;
-    state.contact = contact;
-    state.offers = offers.items; state.offersCursor = offers.nextCursor;
-    state.notes = notes.items; state.notesCursor = notes.nextCursor;
-    state.events = events.items; state.eventsCursor = events.nextCursor;
+  }
+  function panelError(name, label) {
+    const failure = state.errors[name];
+    if (!failure) return null;
+    const retry = button(`Retry ${label.toLowerCase()}`, { variant: 'secondary', class: 'btn-small' });
+    retry.addEventListener('click', async () => {
+      setBusy(retry, true, 'Loading');
+      try {
+        if (name === 'contact') await loadContact(); else await loadPanel(name, failure.cursor);
+        if (isCurrent()) renderData();
+      } finally { setBusy(retry, false); }
+    });
+    return inlineAlert(`${label} could not be loaded. ${failure.error.status === 401 ? 'Sign in again, then retry.' : 'Retry to see the current records.'}`, 'error', retry);
+  }
+  function morePanel(name, renderPanel) {
+    return pager(state[`${name}Cursor`], async cursor => { await loadPanel(name, cursor); if (isCurrent()) renderPanel(); });
   }
   async function loadMembers() {
     if (!isAdmin()) return;
@@ -48,6 +73,7 @@ export default async function detail({ main, params, sessionExpired }) {
   const who = actorId => (!actorId ? 'System' : actorId === memberId() ? 'You' : state.members.get(actorId) || 'Staff');
 
   await Promise.all([loadAll(), loadMembers()]);
+  if (!isCurrent()) return;
 
   // ---------- draft helpers ----------
   function draft(name) {
@@ -70,13 +96,19 @@ export default async function detail({ main, params, sessionExpired }) {
     };
   }
   function afterSuccess(oldVersion, newVersion) {
-    if (Number.isInteger(newVersion)) bumpDrafts(`req:${id}:`, oldVersion, newVersion);
+    if (Number.isInteger(newVersion)) {
+      bumpDrafts(`req:${id}:`, oldVersion, newVersion);
+      // New drafts started while our refresh is pending also inherit our own
+      // confirmed write, without rebasing a draft over another person's edit.
+      if (state.detail.version === oldVersion) state.detail.version = newVersion;
+    }
   }
   async function reloadLatest(forms) {
     await loadAll();
-    for (const f of forms) f.rebase(state.detail.version);
+    if (!isCurrent()) return;
     renderData();
-    announce('Latest details loaded. Your text is kept; save again to apply it.');
+    for (const f of forms) compare(f);
+    announce('Latest details loaded alongside your draft. Compare before reapplying.');
   }
 
   // ---------- containers ----------
@@ -125,6 +157,7 @@ export default async function detail({ main, params, sessionExpired }) {
   statusForm.addEventListener('submit', async event => {
     event.preventDefault();
     replace(statusSlot);
+    if (statusDraft.base() !== state.detail.version) { compare(statusDraft); return; }
     const target = statusSelect.input.value;
     const message = custMsg.input.value.trim();
     const why = reason.input.value.trim();
@@ -208,6 +241,7 @@ export default async function detail({ main, params, sessionExpired }) {
   offerForm.addEventListener('submit', async event => {
     event.preventDefault();
     replace(offerSlot);
+    if (offerDraft.base() !== state.detail.version) { compare(offerDraft); return; }
     const f = offerFields();
     let bad = null;
     const fail = (input, message) => { setError(input, message); bad ??= input; };
@@ -270,6 +304,7 @@ export default async function detail({ main, params, sessionExpired }) {
   noteForm.addEventListener('submit', async event => {
     event.preventDefault();
     replace(noteSlot);
+    if (noteDraft.base() !== state.detail.version) { compare(noteDraft); return; }
     const text = noteField.input.value.trim();
     if (!text) { setError(noteField.input, 'Write a note first.'); noteField.input.focus(); return; }
     const body = { expectedVersion: noteDraft.base(), text };
@@ -298,7 +333,8 @@ export default async function detail({ main, params, sessionExpired }) {
     setBusy(btn, true);
     replace(shareSlot);
     try {
-      return await post(`${base}/share-link`, { channel });
+      const link = await post(`${base}/share-link`, { channel });
+      return isCurrent() ? link : null;
     } catch (error) {
       if (error instanceof ApiError && error.code === 'STATUS_UNAVAILABLE') replace(shareSlot, inlineAlert('The customer’s status link has expired for this closed request. Reopen it to issue a new link.', 'info'));
       else if (error instanceof ApiError && error.fields && Object.keys(error.fields).length) replace(shareSlot, inlineAlert(Object.values(error.fields)[0]));
@@ -483,13 +519,14 @@ export default async function detail({ main, params, sessionExpired }) {
     const current = state.detail.offer;
     const older = state.offers.filter(o => !current || o.id !== current.id);
     replace(offerBox,
-      current ? h('div', { class: 'stack' }, h('p', { class: 'label-caps' }, 'Current'), offerSummary(current)) : h('p', { class: 'muted' }, 'No estimate or visit request sent yet.'),
+      current ? h('div', { class: 'stack' }, h('p', { class: 'label-caps' }, 'Current'), offerSummary(current)) : h('p', { class: 'muted' }, 'No current estimate or visit request.'),
+      panelError('offers', 'Offer history'),
       older.length ? h('details', { class: 'older' }, h('summary', null, `Earlier offers (${older.length})`), h('div', { class: 'stack' }, older.map(offerSummary)),
-        pager(state.offersCursor, async cursor => { const page = await get(`${base}/offers`, { query: { limit: 10, cursor } }); state.offers.push(...page.items); state.offersCursor = page.nextCursor; renderOffer(); })) : null);
+        morePanel('offers', renderOffer)) : morePanel('offers', renderOffer));
   }
 
   function eventsList() {
-    if (!state.events.length) return h('p', { class: 'muted' }, 'No history yet.');
+    if (!state.events.length) return panelError('events', 'History') || h('p', { class: 'muted' }, 'No history yet.');
     return h('div', null, h('ol', { class: 'event-list' }, state.events.map(e => h('li', null,
       h('div', { class: 'event-head' },
         h('strong', null, e.status ? STATUS[e.status] || e.status : e.type.replace(/_/g, ' ')),
@@ -497,28 +534,50 @@ export default async function detail({ main, params, sessionExpired }) {
       e.message ? h('p', { class: 'pre' }, e.message) : null,
       e.reason ? h('p', { class: 'small' }, `Reason: ${e.reason}`) : null,
       h('p', { class: 'small muted' }, `${when(e.at)} · ${who(e.actorId)}`)))),
-    pager(state.eventsCursor, async cursor => { const page = await get(`${base}/events`, { query: { limit: 25, cursor } }); state.events.push(...page.items); state.eventsCursor = page.nextCursor; renderData(); }));
+    panelError('events', 'History'), morePanel('events', renderData));
   }
 
   function notesView() {
-    if (!state.notes.length) return h('p', { class: 'muted small' }, 'No notes yet.');
+    if (!state.notes.length) return panelError('notes', 'Notes') || h('p', { class: 'muted small' }, 'No notes yet.');
     return h('div', null, h('ul', { class: 'note-list' }, state.notes.map(n => h('li', null,
       h('p', { class: 'pre' }, n.text), h('p', { class: 'small muted' }, `${when(n.createdAt)} · ${who(n.authorId)}`)))),
-    pager(state.notesCursor, async cursor => { const page = await get(`${base}/notes`, { query: { limit: 25, cursor } }); state.notes.push(...page.items); state.notesCursor = page.nextCursor; replace(notesList, notesView()); }));
+    panelError('notes', 'Notes'), morePanel('notes', () => replace(notesList, notesView())));
   }
 
+  function compare(formDraft) {
+    const d = state.detail;
+    const f = formDraft.read()?.fields || {};
+    const isStatus = formDraft === statusDraft;
+    const isOffer = formDraft === offerDraft;
+    const slot = isStatus ? statusRestored : isOffer ? offerRestored : noteSlot;
+    const o = d.offer;
+    const rows = isStatus ? [
+      ['Status', STATUS[d.status], STATUS[f.status] || 'No change'],
+      ['Pickup', locationName(d.pickupLocation), locationName(f.pickupLocation)],
+      ['Customer message', d.customerMessage, f.customerMessage || 'No change'],
+      ['Staff reason', 'No new reason', f.reason],
+    ] : isOffer ? [
+      ['Status', STATUS[d.status], f.kind === 'visit' ? 'Please bring it in' : 'Estimate ready'],
+      ['Offer', o ? (o.kind === 'estimate' ? moneyRange(o.amountMinCents, o.amountMaxCents) : 'Visit request') : 'None', f.kind === 'visit' ? 'Visit request' : `${f.min || ''}${f.amountMode === 'range' ? ` to ${f.max}` : ''} dollars`],
+      ['Scope', o?.scope, f.scope], ['Timing note', o?.timingNote, f.timingNote],
+      ['Customer message', o?.customerMessage, f.customerMessage],
+      ['Customer response', o?.response ? RESPONSE_LABELS[o.response.choice] : 'None', 'Publish a new offer'],
+    ] : [
+      ['Status', STATUS[d.status], 'No status change'],
+      ['Latest internal note', state.errors.notes ? 'Unavailable; retry Notes before proceeding' : state.notes[0]?.text, f.text],
+    ];
+    replace(slot, draftComparison({ rows, onReapply: () => {
+      formDraft.rebase(d.version);
+      replace(slot, inlineAlert('Draft reapplied. Review the form and save when ready.', 'info'));
+    } }));
+  }
   function restoredNotes() {
-    for (const [d, slot] of [[statusDraft, statusRestored], [offerDraft, offerRestored]]) {
+    for (const [d, slot] of [[statusDraft, statusRestored], [offerDraft, offerRestored], [noteDraft, noteSlot]]) {
       const saved = d.read();
-      const typed = Object.entries(saved?.fields || {}).filter(([k]) => !['pickupLocation', 'kind', 'amountMode'].includes(k)).some(([, v]) => v);
-      if (!typed) continue;
-      const changed = saved.baseVersion !== state.detail.version;
-      replace(slot, inlineAlert(changed
-        ? 'Restored your unsaved text. This request has changed since you started; review the latest details and history, then save again to apply it.'
-        : 'Restored your unsaved text from earlier.', 'info'));
-      if (changed) d.rebase(state.detail.version);
+      if (!saved) continue;
+      if (saved.baseVersion !== state.detail.version) compare(d);
+      else replace(slot, inlineAlert('Restored your unsaved text from earlier.', 'info'));
     }
-    if (noteDraft.read()?.fields?.text && noteDraft.read().baseVersion !== state.detail.version) noteDraft.rebase(state.detail.version);
   }
 
   // Location data feeds the printable slip.

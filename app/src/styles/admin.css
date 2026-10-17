@@ -127,6 +127,9 @@ body.admin { background: var(--paper); min-height: 100vh; }
 }
 .photo-cell img { width: 100%; height: 100%; object-fit: cover; transition: transform 700ms var(--ease); }
 .photo-cell:hover img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) {
+  .photo-cell img, .photo-cell:hover img, .request-row .icon-chevron, .request-row:hover .icon-chevron { transform: none; transition: none; }
+}
 .photo-cell-meta { position: absolute; left: 6px; bottom: 6px; display: inline-flex; gap: 4px; align-items: center; background: var(--card); color: var(--ink); padding: 2px 6px; font-size: 12px; }
 .photo-cell.is-missing { cursor: default; align-content: center; text-align: center; padding: 8px; }
 .event-list, .note-list, .notice-list, .member-list { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -158,10 +161,10 @@ dialog::backdrop { background: rgba(27, 26, 23, 0.55); }
 .zoom-tools .btn-secondary { color: var(--paper); border-color: var(--paper); }
 .zoom-tools .btn-secondary:hover { background: var(--paper); color: var(--ink); }
 .zoom-dialog :focus-visible { outline-color: var(--open); }
-.zoom-frame { overflow: auto; display: grid; place-items: center; min-height: 0; }
-.zoom-frame img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
-.zoom-frame.is-zoomed { place-items: start; }
-.zoom-frame.is-zoomed img { max-width: none; max-height: none; cursor: zoom-out; }
+.zoom-frame { overflow: auto; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; height: 100%; }
+.zoom-frame img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+.zoom-frame.is-zoomed { display: block; }
+.zoom-frame.is-zoomed img { width: auto; height: auto; max-width: none; max-height: none; cursor: zoom-out; }
 .zoom-frame.is-missing img { display: none; }
 
 /* Notices, hours, team, settings */
@@ -212,3 +215,7 @@ dialog::backdrop { background: rgba(27, 26, 23, 0.55); }
   .print-slip hr { border: 0; border-top: 1px solid #999; margin: 12pt 0; }
 }
 .panel > .btn, .stack > .btn, .panel > .badge, .panel > .badge-row { justify-self: start; }
+
+.draft-comparison { min-width: 0; padding: 16px; border: 1px solid var(--field); }
+.draft-comparison dd { overflow-wrap: anywhere; }
+.outbox-view { display: grid; gap: 24px; min-width: 0; }

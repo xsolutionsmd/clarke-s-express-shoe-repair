@@ -1,5 +1,25 @@
 # Validation
 
+## Functional review fixes, 2026-10-17
+
+The final local implementation suite passed 134 backend tests and 81 Chromium browser
+cases, plus lint, frontend/static build, runtime fixture exclusion, health, revision and
+source-label checks. The coordinator verified the recorded hashes for all 28 changed
+source/test files. The older blocked-build notes below are historical.
+
+All 11 code-review findings and eight coordinator findings were accepted and fixed.
+Regressions cover failed logout, expired/cleared photo drafts, delayed navigation,
+private status history isolation, recoverable read errors, pending retention and
+explicit comparison before reapplying stale staff drafts. Browser evidence covers
+portrait-photo fit, doubled text, reduced motion and print-media/PDF generation;
+physical printing and a human PDF visual review are not claimed.
+
+The PowerShell redirected wrapper reported status 1 despite the launcher's final
+success and completed test results; native stderr handling was reproduced separately.
+A committed-candidate verification and affected-page walkthrough follow. Actual
+Google/Gmail and all live acceptance rows remain outstanding. No functional deployment
+is claimed by this local result.
+
 ## Local backend implementation, 2026-10-17
 
 Independent backend review reproduced five defects and one browser-test gap.

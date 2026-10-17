@@ -128,7 +128,7 @@ small, .small { font-size: 14px; line-height: 20px; }
 }
 .header-inner {
   max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter);
-  height: var(--header); display: flex; align-items: center; gap: 24px;
+  min-height: var(--header); display: flex; align-items: center; gap: 24px;
 }
 .wordmark {
   display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; flex: none;
@@ -156,12 +156,15 @@ small, .small { font-size: 14px; line-height: 20px; }
 }
 .header-call:hover { color: var(--oxblood); }
 @media (max-width: 1040px) {
-  .header-inner { justify-content: space-between; gap: 8px; padding: 0 12px; }
+  .header-inner { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; padding: 8px 12px; }
   .menu-toggle { display: inline-flex; }
   .header-call { justify-content: center; width: 44px; border-radius: 2px; }
   .header-call:hover { background: var(--tint); }
   .header-call-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .header-inner > .wordmark { position: absolute; left: 50%; transform: translateX(-50%); }
+  .header-inner > .wordmark { position: static; transform: none; justify-self: center; min-width: 0; max-width: 100%; gap: 8px; }
+  .header-inner .wordmark-text { min-width: 0; overflow-wrap: anywhere; }
+  .header-inner .wordmark-mark { flex-shrink: 0; }
+  .header-inner .menu-toggle { order: 0; }
   .site-nav {
     position: absolute; left: 0; right: 0; top: 100%;
     flex-direction: column; align-items: stretch; gap: 20px;
@@ -244,6 +247,8 @@ small, .small { font-size: 14px; line-height: 20px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .motion-ready [data-reveal] { transform: none; transition: opacity 120ms linear; }
+  .site-nav { transform: none; transition: opacity 120ms linear, visibility 0s linear 120ms; }
+  .btn:hover .icon-arrow, .text-link.with-icon:hover .icon { transform: none; transition: none; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
   .btn.is-busy::after { animation: spin 1.4s linear infinite !important; animation-iteration-count: infinite !important; animation-duration: 1.4s !important; }
 }

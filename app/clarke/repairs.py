@@ -54,7 +54,7 @@ def public_status(c,r):
     active=offer and offer['state']=='active' and r['status'] in ('estimate_sent','needs_visit')
     history=list(c.execute("SELECT * FROM request_events WHERE request_id=? AND visibility='customer' ORDER BY created_at DESC,id DESC LIMIT 50",(r['id'],)))
     next_action={'new':"We'll review your request and reply with an estimate or ask to see it in person.",'reviewing':"We're reviewing your request.",'estimate_sent':'Review the estimate.','needs_visit':'Please bring the item in so we can examine it.','not_repairable':'Call the shop if you would like to discuss the assessment.','awaiting_dropoff':'Your response is recorded.','in_shop':'Your item is in the shop.','in_progress':'Your repair is in progress.','ready':'Your item is ready for pickup.','picked_up':'Your item has been collected.','cancelled':'This request is closed.'}[r['status']]
-    next_action+=' '+route_message(r['pickup_location'] if r['status']=='ready' else r['dropoff_location'])
+    next_action+=' '+route_message(r['pickup_location'] if r['status']=='ready' else r['dropoff_location'],pickup=r['status']=='ready')
     return dict(reference=reference_value(r),version=r['version'],status=r['status'],statusLabel=STATUSES[r['status']],itemType=r['item_type'],dropoffLocation=r['dropoff_location'],pickupLocation=r['pickup_location'],appointmentConfirmed=False,updatedAt=iso(r['updated_at']),nextAction=next_action,customerMessage=r['customer_message'],offer=offer_view(c,offer) if offer and offer['state']!='superseded' else None,allowedResponses=['accept','decline','request_call'] if active else [],history=[event_view(x) for x in reversed(history)],locationDataUrl='/api/v1/locations')
 
 def summary(c,r):

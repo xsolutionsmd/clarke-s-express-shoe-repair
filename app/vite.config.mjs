@@ -58,6 +58,7 @@ export default {
         'repair-request': resolve(root, 'repair-request.html'),
         'repair-status': resolve(root, 'repair-status.html'),
         admin: resolve(root, 'admin.html'),
+        'not-found': resolve(root, 'not-found.html'),
       },
     },
   },

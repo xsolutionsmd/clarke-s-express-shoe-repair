@@ -156,6 +156,7 @@ export const del = (path, body, options) => request(path, { ...options, method: 
 export function uploadFile(path, file, { draftToken, idempotencyKey, onProgress, signal } = {}) {
   const send = async (allowCsrfRetry) => {
     if (!csrfToken) await refreshCsrf();
+    if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', BASE + path);

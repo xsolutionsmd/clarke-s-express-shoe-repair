@@ -24,9 +24,11 @@ export class PhotoManager {
     this.items = [];
     this.active = 0;
     this.waiters = [];
+    this.generation = 0;
     input.addEventListener('change', () => { this.add([...input.files]); input.value = ''; });
     this.bindDrop();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.items.forEach(item => this.resumePoll(item)); });
+    this.onVisible = () => { if (!document.hidden) this.items.forEach(item => this.resumePoll(item)); };
+    document.addEventListener('visibilitychange', this.onVisible);
   }
 
   setLimits(limits) { this.limits = limits; this.renderNotice(); }
@@ -84,15 +86,19 @@ export class PhotoManager {
   }
 
   draftLost() {
-    // Draft expired or vanished: files still in memory are re-queued to a new draft.
+    // Old photo IDs can never belong to the replacement draft. Require explicit
+    // reattachment, including after reload where the original file is unavailable.
+    this.generation += 1;
+    this.active = 0;
     for (const item of this.items) {
-      if (item.state === 'local-rejected') continue;
       window.clearTimeout(item.pollTimer);
+      item.abort?.abort();
+      if (item.state === 'local-rejected') continue;
       item.photoId = null;
       item.key = uuid();
-      if (item.file) { item.state = 'queued'; item.error = null; } else { item.state = 'expired'; item.error = null; }
+      item.state = 'expired';
+      item.error = null;
     }
-    this.pump();
     this.changed();
   }
 
@@ -142,6 +148,8 @@ export class PhotoManager {
   }
 
   async upload(item) {
+    const generation = this.generation;
+    const current = () => generation === this.generation && this.items.includes(item);
     this.active += 1;
     item.state = 'uploading';
     item.progress = 0;
@@ -149,23 +157,27 @@ export class PhotoManager {
     this.changed();
     try {
       const draft = await this.ensureDraft();
+      if (!current()) return;
       item.abort = new AbortController();
       const data = await uploadFile(`/drafts/${encodeURIComponent(draft.id)}/photos`, item.file, {
         draftToken: draft.token, idempotencyKey: item.key, signal: item.abort.signal,
-        onProgress: fraction => { item.progress = fraction; this.renderItem(item); },
+        onProgress: fraction => { if (current()) { item.progress = fraction; this.renderItem(item); } },
       });
+      if (!current()) return;
       item.photoId = data.photoId;
       this.applyServer(item, data);
       announce(`${item.name} uploaded${item.state === 'processing' ? ', converting' : ''}.`);
       if (item.state === 'processing') this.poll(item, 0);
     } catch (error) {
-      if (error?.name === 'AbortError') { /* removed by the customer */ }
+      if (!current() || error?.name === 'AbortError') { /* removed by the customer */ }
       else this.uploadFailed(item, error);
     } finally {
       item.abort = null;
-      this.active -= 1;
-      this.changed();
-      this.pump();
+      if (generation === this.generation) {
+        this.active -= 1;
+        this.changed();
+        this.pump();
+      }
     }
   }
 
@@ -197,20 +209,24 @@ export class PhotoManager {
   }
 
   poll(item, step) {
+    const generation = this.generation;
+    const current = () => generation === this.generation && this.items.includes(item);
     window.clearTimeout(item.pollTimer);
     if (document.hidden) { item.pollPaused = true; return; }
     item.pollPaused = false;
     item.pollTimer = window.setTimeout(async () => {
-      if (!item.photoId || item.state !== 'processing') return;
+      if (!current() || !item.photoId || item.state !== 'processing') return;
       try {
         const draft = await this.ensureDraft({ existingOnly: true });
-        if (!draft) return;
+        if (!current() || !draft) return;
         const p = await get(`/drafts/${encodeURIComponent(draft.id)}/photos/${encodeURIComponent(item.photoId)}`, { draftToken: draft.token });
+        if (!current()) return;
         this.applyServer(item, p);
         if (item.state === 'ready') announce(`${item.name} is ready.`);
         if (item.state === 'rejected') announce(`${item.name} could not be used.`, { assertive: true });
         this.changed();
       } catch (error) {
+        if (!current()) return;
         if (error instanceof ApiError && error.code === 'DRAFT_EXPIRED') { this.onDraftLost?.(); return; }
         if (error instanceof ApiError && error.status === 404) { item.state = 'expired'; this.changed(); return; }
       }
@@ -272,8 +288,13 @@ export class PhotoManager {
   }
 
   clearAll() {
+    this.generation += 1;
+    this.active = 0;
+    document.removeEventListener('visibilitychange', this.onVisible);
     for (const item of this.items) { window.clearTimeout(item.pollTimer); item.abort?.abort(); if (item.url) URL.revokeObjectURL(item.url); }
     this.items = [];
+    const waiting = this.waiters.splice(0);
+    waiting.forEach(resolve => resolve());
     this.render();
   }
 

@@ -16,6 +16,7 @@ from .locations import locations,route_message
 
 bp=Blueprint('mail',__name__)
 SEND_MUTEX=threading.Lock()
+ITEM_LABELS={'shoes':'Shoes','boots':'Boots','handbag_purse':'Handbag or purse','belt_strap':'Belt or strap','leather_garment':'Leather jacket or garment','luggage':'Luggage','baseball_glove':'Baseball glove','other_leather':'Other leather item','keys':'Keys (ask us)'}
 SAFE_ERRORS={'SENDER_DISCONNECTED':'Connect the Gmail sender, then retry.','GOOGLE_REAUTH_REQUIRED':'Reconnect the Gmail sender.','GOOGLE_UNAVAILABLE':'Google is unavailable. Delivery will be retried when safe.','DELIVERY_UNCERTAIN':'Delivery may have succeeded. Review before retrying.','GOOGLE_REJECTED':'Google rejected delivery. Check the sender and recipient.','GOOGLE_RATE_LIMIT':'Google asked us to wait before sending.','BODY_PURGED':'The retained email body has expired.','SENDER_CHANGED':'The sender changed during delivery.'}
 
 def allowed(destination,kind='EMAILS'):
@@ -52,7 +53,7 @@ def notify(c,r,event,kind,offer=None):
     from .repairs import reference_value,status_url
     subject={'customer_received':"We've received your Clarke's repair request",'customer_estimate':"Your Clarke's repair estimate",'customer_needs_visit':"Please bring your item to Clarke's",'customer_not_repairable':"An update on your Clarke's repair",'customer_ready':"Your Clarke's repair is ready for pickup",'staff_new_request':"New Clarke's repair request",'staff_customer_response':"A customer answered their Clarke's repair offer"}[kind]
     recipients=settings(c)['notificationEmails'] if kind.startswith('staff_') else ([r['email_norm']] if r['email_norm'] else [])
-    lines=[subject+'.',reference_value(r),r['item_type'].replace('_',' ')]
+    lines=[subject+'.',reference_value(r),ITEM_LABELS[r['item_type']]]
     if kind.startswith('staff_'):
         lines += [r['description'],'Preferred contact: '+r['preferred'],current_app.config['PUBLIC_ORIGIN']+'/admin/requests/'+r['id']]
         if r['callback_phone']:lines.append('Requested callback: '+r['callback_phone'])
@@ -65,7 +66,7 @@ def notify(c,r,event,kind,offer=None):
                 lines += [amount,DISCLAIMER]
             lines += [offer['scope']]+([offer['timing_note']] if offer['timing_note'] else [])
         location=r['pickup_location'] if kind=='customer_ready' else r['dropoff_location']
-        lines.append(route_message(location))
+        lines.append(route_message(location,pickup=kind=='customer_ready'))
         if kind=='customer_ready':
             card=next(x for x in locations(c)['locations'] if x['id']==location)
             lines.append(card['stateText'])

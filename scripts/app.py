@@ -391,7 +391,7 @@ def start_installed(args):
 
 def check_app(args):
     expected = revision()
-    image = CONFIG["name"] + "-check:" + expected
+    image = CONFIG["name"] + "-check:" + expected + "-" + uuid.uuid4().hex[:10]
     source = "https://github.com/" + CONFIG["repository"]
     for target in ("test", "runtime"):
         command = ["docker", "build", "--target", target, "--build-arg", "APP_REVISION=" + expected,

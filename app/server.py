@@ -43,6 +43,17 @@ def create_app(config=None):
 
     @app.errorhandler(Exception)
     def unexpected(error):
+        # Human navigation gets a recoverable page; API, private-file and asset
+        # failures retain JSON and the actual 404 status.
+        path=request.path
+        if (isinstance(error,HTTPException) and error.code==404
+                and request.method in ('GET','HEAD') and request.accept_mimetypes['text/html']>0
+                and not path.startswith(('/api','/oauth','/uploads','/data','/.'))
+                and '.' not in path.rsplit('/',1)[-1]
+                and (BASE/'dist'/'not-found.html').is_file()):
+            response=send_from_directory(BASE/'dist','not-found.html')
+            response.status_code=404
+            return response
         if isinstance(error,HTTPException):return api_error(core.ApiError('UPLOAD_TOO_LARGE' if error.code==413 else 'NOT_FOUND' if error.code==404 else 'UNSUPPORTED_MEDIA_TYPE' if error.code==415 else 'MALFORMED_JSON',error.code))
         # Only safe type/request IDs are logged. Never SQL, bodies, contacts or OAuth codes.
         app.logger.error('Request failure type=%s request=%s',type(error).__name__,getattr(g,'request_id','none'))

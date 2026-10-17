@@ -37,6 +37,7 @@ const ui = {};
 let photos = null;
 let submitting = false;
 let draftPromise = null;
+let formGeneration = 0;
 
 function persist() {
   intake.photos = photos ? photos.serialize() : intake.photos;
@@ -57,23 +58,31 @@ window.addEventListener('popstate', route);
 
 // ---------- draft ----------
 function draftValid() {
-  return intake.draft && Date.parse(intake.draft.expiresAt) > Date.now() + 60000;
+  return intake.draft && Date.parse(intake.draft.expiresAt) > Date.now();
 }
 
 async function ensureDraft({ existingOnly = false } = {}) {
   if (draftValid()) return intake.draft;
   if (existingOnly) return intake.draft || null;
   if (draftPromise) return draftPromise;
+  if (intake.draft) await draftLost();
+  const owner = intake;
+  const current = () => owner === intake;
   draftPromise = (async () => {
     await bootstrap();
+    if (!current()) throw new DOMException('Form cleared', 'AbortError');
     intake.draftKey ||= uuid();
     persist();
     const data = await post('/drafts', {}, { idempotencyKey: intake.draftKey });
+    if (!current()) {
+      del(`/drafts/${encodeURIComponent(data.draftId)}`, undefined, { draftToken: data.draftToken }).catch(() => {});
+      throw new DOMException('Form cleared', 'AbortError');
+    }
     intake.draft = { id: data.draftId, token: data.draftToken, expiresAt: data.expiresAt };
     intake.draftKey = null;
     persist();
     return intake.draft;
-  })().finally(() => { draftPromise = null; });
+  })().finally(() => { if (current()) draftPromise = null; });
   return draftPromise;
 }
 
@@ -90,8 +99,10 @@ async function draftLost({ submitted = false } = {}) {
 
 async function recoverReceipt() {
   if (!intake.draft) return false;
+  const generation = formGeneration;
   try {
     const d = await get(`/drafts/${encodeURIComponent(intake.draft.id)}`, { draftToken: intake.draft.token });
+    if (generation !== formGeneration) return false;
     if (d.state === 'submitted' && d.receipt) { finish(d.receipt, { push: true }); return true; }
   } catch { /* handled by caller */ }
   return false;
@@ -114,6 +125,9 @@ function section(title, help, ...children) {
 }
 
 function renderForm() {
+  formGeneration += 1;
+  submitting = false;
+  photos?.clearAll();
   applyPreset();
   const f = intake.fields;
   clear(app);
@@ -170,7 +184,7 @@ function renderForm() {
   ui.submit = h('button', { type: 'submit', class: 'btn btn-primary btn-large' }, h('span', { class: 'btn-label' }), icon('arrow', { size: 18 }));
   ui.submitAlert = h('div', { class: 'form-alert-slot' });
   ui.consent = h('p', { class: 'consent' }, boot?.consentText || 'Your photos and details are used only to answer this repair request.');
-  const clearBtn = button('Clear form', { variant: 'quiet', onclick: clearDraft });
+  ui.clearBtn = button('Clear form', { variant: 'quiet', onclick: clearDraft });
 
   ui.form = h('form', { novalidate: true, class: 'request-form', 'aria-labelledby': 'request-title' },
     ui.alert,
@@ -180,7 +194,7 @@ function renderForm() {
       h('p', { class: 'field-help', id: 'photo-help' }, 'Optional, but they help us reply with an estimate. Up to 5 photos, 10 MB each: JPEG, PNG, WebP or HEIC. Show the whole item and a close-up of the area that needs work.'),
       ui.dropzone, ui.photoNotice, ui.photoList, ui.photosError),
     section('How to reach you', null, ui.name.wrap, ui.email.wrap, ui.phone.wrap, ui.preferred.wrap, honeypot),
-    h('div', { class: 'form-foot' }, ui.consent, ui.submitAlert, h('div', { class: 'form-actions' }, ui.submit, clearBtn)));
+    h('div', { class: 'form-foot' }, ui.consent, ui.submitAlert, h('div', { class: 'form-actions' }, ui.submit, ui.clearBtn)));
 
   replace(app,
     h('h1', { class: 'form-title', id: 'request-title', tabindex: '-1' }, 'Send photos for an estimate'),
@@ -274,9 +288,12 @@ function checkNeededBy() {
 }
 
 async function reconcileDraft() {
+  const generation = formGeneration;
   try {
     boot = await bootstrap();
+    if (generation !== formGeneration) return;
   } catch (error) {
+    if (generation !== formGeneration) return;
     showFormAlert(alertBox('We couldn’t connect to the shop’s website. You can keep filling in the form; we’ll try again when you send it.', { tone: 'info', extra: callFallback() }));
   }
   if (boot) {
@@ -288,11 +305,13 @@ async function reconcileDraft() {
   if (!intake.draft) return;
   try {
     const d = await get(`/drafts/${encodeURIComponent(intake.draft.id)}`, { draftToken: intake.draft.token });
+    if (generation !== formGeneration) return;
     if (d.state === 'submitted' && d.receipt) { finish(d.receipt, { push: true }); return; }
     if (d.state !== 'active') { draftLost(); return; }
     intake.draft.expiresAt = d.expiresAt || intake.draft.expiresAt;
     photos.reconcile(d.photos);
   } catch (error) {
+    if (generation !== formGeneration) return;
     if (error instanceof ApiError && (error.code === 'DRAFT_EXPIRED' || error.status === 404)) draftLost();
   }
 }
@@ -385,14 +404,18 @@ async function submit() {
     focusTarget(errors[0]);
     return;
   }
+  const generation = formGeneration;
+  const current = () => generation === formGeneration;
   submitting = true;
   setBusy(ui.submit, true, 'Sending');
   try {
     if (!boot) boot = await bootstrap();
+    if (!current()) return;
     if (boot.intake?.accepting === false) { renderPaused(boot.intake.message); return; }
     if (photos.pending()) {
       setBusy(ui.submit, true, 'Finishing photo uploads');
       await photos.settle();
+      if (!current()) return;
       setBusy(ui.submit, true, 'Sending');
       if (photos.blocking().length) {
         setPhotosError('One or more photos couldn’t be used. Remove them before sending, or attach them again.');
@@ -400,37 +423,46 @@ async function submit() {
         return;
       }
     }
-    await send(true);
+    await send(true, current);
   } catch (error) {
-    handleSubmitError(error);
+    if (current() && error?.name !== 'AbortError') handleSubmitError(error);
   } finally {
-    submitting = false;
-    if (ui.submit.isConnected) setBusy(ui.submit, false);
+    if (current()) {
+      submitting = false;
+      if (ui.submit.isConnected) setBusy(ui.submit, false);
+      ui.clearBtn.disabled = false;
+    }
   }
 }
 
-async function send(allowRetry) {
+async function send(allowRetry, current) {
   const draft = await ensureDraft();
+  if (!current()) return;
+  await photos.settle();
+  if (!current()) return;
+  if (photos.blocking().length) throw new ApiError({ code: 'DRAFT_EXPIRED', message: 'Some photos expired. Remove the marked photos and attach them again before sending. Your details are kept.' });
   const payload = payloadFor(draft);
   const canonical = JSON.stringify(payload);
   if (!intake.submit || intake.submit.payload !== canonical) intake.submit = { key: uuid(), payload: canonical };
   persist();
   try {
+    ui.clearBtn.disabled = true;
     const receipt = await post('/requests', payload, { idempotencyKey: intake.submit.key, draftToken: draft.token });
-    finish(receipt, { push: true });
+    if (current()) finish(receipt, { push: true });
   } catch (error) {
+    if (!current()) return;
     if (!(error instanceof ApiError) || !allowRetry) throw error;
-    if (error.code === 'IDEMPOTENCY_CONFLICT') { intake.submit = null; return send(false); }
+    if (error.code === 'IDEMPOTENCY_CONFLICT') { intake.submit = null; return send(false, current); }
     if (error.code === 'DRAFT_SUBMITTED') { if (await recoverReceipt()) return undefined; throw error; }
     if (error.code === 'DRAFT_EXPIRED' || (error.status === 404 && error.code === 'NOT_FOUND')) {
       const hadPhotos = photos.items.some(i => i.photoId);
       await draftLost();
-      if (!hadPhotos) return send(false);
+      if (!hadPhotos) return send(false, current);
       throw new ApiError({ status: 409, code: 'DRAFT_EXPIRED', message: 'Your photos expired after 24 hours. Remove the marked photos and attach them again, then send.' });
     }
     if (error.code === 'PHOTOS_NOT_READY') {
       await photos.settle();
-      return send(false);
+      return send(false, current);
     }
     throw error;
   }
@@ -465,6 +497,9 @@ function handleSubmitError(error) {
 async function clearDraft() {
   if (!window.confirm('Clear this form and remove any attached photos?')) return;
   const draft = intake.draft;
+  formGeneration += 1;
+  draftPromise = null;
+  window.clearTimeout(persistTimer);
   photos?.clearAll();
   intake = { fields: { ...EMPTY }, draft: null, draftKey: null, photos: [], submit: null };
   remove(INTAKE);

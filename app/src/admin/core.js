@@ -42,11 +42,23 @@ export function redirectToGoogle(url) {
   window.location.assign(target.href);
 }
 
-export async function logout() {
-  try { await post('/admin/logout', {}); } catch { /* signed out locally regardless */ }
+export const logoutPending = () => Boolean(read('logout-pending', 1));
+export function beginLogout() {
+  write('logout-pending', 1, true, 24 * HOUR);
   clearAllStaff();
   session.data = null;
-  useAnonymousCsrf();
+}
+export async function logout() {
+  beginLogout();
+  try {
+    await post('/admin/logout', {});
+  } catch (error) {
+    // A 401 confirms there is no usable staff session. Network/5xx do not.
+    if (!(error instanceof ApiError) || error.status !== 401) throw error;
+  } finally {
+    useAnonymousCsrf();
+  }
+  remove('logout-pending');
 }
 
 // ---------- staff drafts (sessionStorage, keyed by member, 12h) ----------
@@ -141,6 +153,21 @@ export function inlineAlert(message, tone = 'error', extra) {
 
 export function when(value) { return value ? formatDateTime(value) : ''; }
 
+// Keep the draft's old version until the person has compared it with current
+// server values and deliberately chosen to reapply. This action does not save.
+export function draftComparison({ rows, onReapply }) {
+  const value = v => v === true ? 'Yes' : v === false ? 'No' : Array.isArray(v) ? v.join(', ') || 'None' : String(v ?? '') || 'None';
+  const apply = button('Reapply my draft', { variant: 'secondary', class: 'btn-small' });
+  apply.addEventListener('click', onReapply);
+  return h('section', { class: 'draft-comparison stack', 'aria-label': 'Compare current values and your draft' },
+    inlineAlert('This record changed since your draft began. Compare the current values with your draft before reapplying. Nothing is saved by reapplying.', 'info'),
+    rows.map(([label, current, draft]) => h('div', { class: 'stack' },
+      h('h3', null, label), h('dl', { class: 'kv' },
+        h('dt', null, 'Current'), h('dd', { class: 'pre' }, value(current)),
+        h('dt', null, 'Your draft'), h('dd', { class: 'pre' }, value(draft))))),
+    h('div', { class: 'form-actions' }, apply));
+}
+
 // Native <dialog> confirmation; resolves true only on the explicit confirm button.
 export function confirmDialog({ title, body, confirmLabel = 'Confirm', danger = false, extra }) {
   return new Promise(resolve => {
@@ -168,7 +195,12 @@ export function showError(slot, error, ctx, { onReload } = {}) {
   if (error.status === 401) { ctx.sessionExpired(); replace(slot, inlineAlert('Your session ended. Sign in again; your unsaved text is kept.', 'info')); return true; }
   if (error.code === 'VERSION_CONFLICT') {
     const reload = button('Load latest details', { variant: 'secondary', class: 'btn-small' }, 'refresh');
-    reload.addEventListener('click', async () => { setBusy(reload, true, 'Loading'); await onReload?.(error); });
+    reload.addEventListener('click', async () => {
+      setBusy(reload, true, 'Loading');
+      try { await onReload?.(error); }
+      catch (failure) { showError(slot, failure, ctx, { onReload }); }
+      finally { setBusy(reload, false); }
+    });
     replace(slot, inlineAlert(error.message || 'Updated by someone else. Reload the latest details; your draft is kept.', 'error',
       h('div', { class: 'form-actions' }, reload)));
     slot.firstChild?.focus();

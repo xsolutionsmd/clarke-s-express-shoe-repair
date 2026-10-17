@@ -4,7 +4,7 @@ import { h, replace, setBusy, uid } from '../../lib/dom.js';
 import { get, put, ApiError } from '../../lib/api.js';
 import { DAY_NAMES, hoursRows } from '../../lib/format.js';
 import { watchLocations, findLocation, stateBadge, noticeView } from '../../lib/locations.js';
-import { pageHead, panel, showError, inlineAlert, getDraft, saveDraft, clearDraft, when } from '../core.js';
+import { pageHead, panel, showError, inlineAlert, getDraft, saveDraft, clearDraft, when, draftComparison } from '../core.js';
 import { uuid } from '../../lib/store.js';
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -16,7 +16,7 @@ export default async function hours({ main, sessionExpired }) {
   const slot = h('div', { class: 'form-alert-slot' });
   const rows = new Map();
   const restored = saved?.fields ? inlineAlert(saved.baseVersion !== data.version ? 'Restored your unsaved hours. They were changed by someone else since; review and save again.' : 'Restored your unsaved hours.', 'info') : null;
-  if (saved && saved.baseVersion !== data.version) saveDraft('hours', { ...saved, baseVersion: data.version, key: null });
+
 
   const table = h('div', { class: 'hours-editor', role: 'group', 'aria-label': 'Bel Air weekly hours' }, ORDER.map(index => {
     const day = days[index];
@@ -48,6 +48,7 @@ export default async function hours({ main, sessionExpired }) {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     replace(slot);
+    if (getDraft('hours') && getDraft('hours').baseVersion !== data.version) { compare(); return; }
     let bad = null;
     for (const [index, r] of rows) {
       r.error.hidden = true;
@@ -80,15 +81,25 @@ export default async function hours({ main, sessionExpired }) {
       } else {
         showError(slot, error, { sessionExpired }, { onReload: async () => {
           data = await get('/admin/hours');
-          const d = getDraft('hours');
-          if (d) saveDraft('hours', { ...d, baseVersion: data.version, key: null });
           renderSummary();
-          replace(slot, inlineAlert('Latest hours loaded below. Your edits are still in the form; save again to apply them.', 'info'));
+          compare();
         } });
       }
     } finally { setBusy(submit, false); }
   });
 
+  function compare() {
+    const display = day => day ? `${day.open} to ${day.close}` : 'Closed';
+    const edited = collect();
+    replace(slot, draftComparison({
+      rows: ORDER.map(i => [DAY_NAMES[i], display(data.days[i]), display(edited[i])]),
+      onReapply: () => {
+        saveDraft('hours', { fields: { days: collect() }, baseVersion: data.version, key: null, payload: null });
+        replace(slot, inlineAlert('Draft reapplied. Review your hours and save when ready.', 'info'));
+      },
+    }));
+  }
+  if (saved && saved.baseVersion !== data.version) compare();
   const summary = h('div');
   const publicState = h('div');
   function renderSummary() {

@@ -75,7 +75,7 @@ export default async function inbox({ main, sessionExpired }) {
             h('span', { class: 'request-meta' }, itemLabel(item.itemType), ' · ', locationName(item.dropoffLocation), item.source === 'walk_in' ? ' · Walk-in' : '', item.photoCount ? ` · ${item.photoCount} photo${item.photoCount === 1 ? '' : 's'}` : '')),
           h('span', { class: 'request-side' },
             statusBadge(item.status),
-            item.responsePending ? badge('Customer replied', 'warn') : null,
+            item.responsePending ? badge('Waiting for customer reply', 'warn') : null,
             deliveryBadges(item.delivery),
             h('span', { class: 'request-dates' }, `Received ${formatShortDate(item.createdAt)}`, item.neededBy ? ` · Needed by ${formatLocalDate(item.neededBy)}` : ''),
             h('span', { class: 'request-ref' }, item.reference)),

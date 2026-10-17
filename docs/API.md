@@ -857,6 +857,9 @@ or idempotency key is needed. GET settings additionally returns
 `pendingRetention:null` or the pending days/effectiveAt object while a reduction is
 scheduled; the active numeric values remain effective until then. Replacing a
 pending reduction requires the current settings version and a fresh confirmation.
+Omitting both retention fields preserves any scheduled change. Explicitly sending
+the current active periods cancels a scheduled change; the UI distinguishes keep,
+replace, and cancel and refreshes the active/pending policy after saving.
 Missing required confirmation returns 422 on `confirmRetentionReduction`.
 Enabling delivery with no connected sender → 409 `SENDER_DISCONNECTED`. On later
 sender failure settings remain enabled but UI warns; requests continue saving.
@@ -1233,7 +1236,9 @@ Frontend routes served by Flask's explicit shell allowlist, including direct rel
 `/admin/settings`, `/admin/locations`, `/admin/notices`, `/admin/team`, `/admin/emails`,
 `/admin/emails/outbox/{uuid}`, `/admin/audit`. Additional sourced brand-page routes
 may be added by frontend owner. Unknown `/api`, `/oauth`, `/uploads`, traversal and
-unknown asset paths return actual 404, never SPA HTML. Frontend routes imply no
+unknown asset paths return actual 404, never SPA HTML. Unknown extensionless
+page navigations accepting HTML get the dedicated missing-page HTML with recovery
+links and HTTP 404; API/private-file errors remain JSON. Frontend routes imply no
 unimplemented backend endpoints. Assets served only from dist; no `/data` path.
 
 Security headers: CSP self-only default/script/connect/font/style/media/image
