@@ -67,12 +67,32 @@ def test_corrupt_animated_pixel_limits_and_stale_cleanup(app,client):
         maintenance.reconcile()
         with db.connect() as c:assert {r[0] for r in c.execute('SELECT state FROM photos')}=={'rejected'}
 
-def test_real_12mp_heic_under_runtime_limit(app,client):
+def test_real_12mp_heic_under_runtime_limit(app,client,monkeypatch):
+    # Preserve the real sandboxed subprocess; include bounded process diagnostics
+    # only if the real fixture fails, so CI failures distinguish timeout/signal/OOM.
+    import resource,time,platform
+    original=uploads.subprocess.run;diagnostics=[]
+    def observed(*args,**kwargs):
+        started=time.monotonic();kwargs['stderr']=uploads.subprocess.PIPE
+        try:
+            process=original(*args,**kwargs)
+            diagnostics.append({'returncode':process.returncode,'seconds':round(time.monotonic()-started,2),
+                'stderr':process.stderr[-2000:].decode(errors='replace')})
+            return process
+        except uploads.subprocess.TimeoutExpired:
+            diagnostics.append({'timeout':True,'seconds':round(time.monotonic()-started,2)})
+            raise
+    monkeypatch.setattr(uploads.subprocess,'run',observed)
     fixture=Path('/opt/test-fixtures/phone-12mp.heic')
     assert fixture.exists(),'The backend-test build must generate a real 4032×3024 HEIC fixture.'
     d,h=draft(client);r=upload(client,d,h,fixture.read_bytes(),'phone.heic');assert r.status_code==202,r.json
     with app.app_context():
-        result=uploads.process_one();assert 'error' not in result,result
+        result=uploads.process_one()
+        if 'error' in result:
+            import json
+            print('HEIC_DIAGNOSTIC '+json.dumps({'result':result,'process':diagnostics,
+                'stack':resource.getrlimit(resource.RLIMIT_STACK),'python':platform.python_version(),'libc':platform.libc_ver()}))
+        assert 'error' not in result,result
         assert max(result['width'],result['height'])==2048 and result['peakRssKiB']<160*1024
         assert result['sandboxFileDenied'] and result['sandboxNetworkDenied']
         with db.connect() as c:
