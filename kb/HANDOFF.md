@@ -1,14 +1,14 @@
 # Handoff
 
 <!-- xs-status:start -->
-Pipeline status (generated 2026-10-17T13:28:44.712915+00:00):
+Pipeline status (generated 2026-10-17T13:56:09.762925+00:00):
 
 - **identity**: done
 - **research**: done
 - **spec**: done
-- **assets**: todo: finish coverage for website, instagram, facebook
-- **delivery**: todo: package the current library and record each part's verified Slack delivery to Abdul
-- **infra**: stale: features changed; review and record this stage again
+- **assets**: done
+- **delivery**: done
+- **infra**: done
 - **template**: stale: features changed; review and record this stage again
 - **build**: stale: features changed; review and record this stage again
 - **deploy**: todo: record verified deploy evidence
@@ -16,15 +16,15 @@ Pipeline status (generated 2026-10-17T13:28:44.712915+00:00):
 
 ## Current state
 
-2026-10-17: functional/full pipeline started. Identity and factual research verified. No infrastructure or application release yet. Feature definition is in progress; media collection runs alongside it.
+2026-10-17: functional/full pipeline in progress. Identity, research, feature spec, media shortlist, verified team delivery and infrastructure are complete. All three independent stateful HTTPS/noindex placeholders match revision 7cc259a097d6a736a057d84726eda6ae74ffbfc7, with persistence and backup restores verified. Application build and release have not started.
 
 ## Last session
 
-Research covered 29 official pages, both Maps locations, social profiles and directory/press corroboration. Current Bel Air hours and Dundalk appointment instructions take precedence over stale components; unresolved operating policies remain in open-questions.md.
+Research covered 29 official pages, both Maps locations, social profiles and directory/press corroboration. Current Bel Air hours and Dundalk appointment instructions take precedence over stale components; unresolved operating policies remain in open-questions.md. The media library contains 453 images with 17 shortlist picks; coverage gaps are in media.md. Package delivery was verified after reload and by matching a downloaded copy's hash and size.
 
 ## Next step
 
-Finish feature definition, media coverage/shortlist and delivery; then provision three independent stateful environments if selected capabilities require them. Template/design starts only after these setup stages pass.
+Select the premium functional template with REA and commit the API contract, then build backend and frontend with separate file ownership. Google clients are provisioned; actual Google sign-in and Gmail delivery require the backend. All 45 pre-release and 13 live acceptance scenarios still require implementation and evidence.
 
 ## Blockers / waiting on
 

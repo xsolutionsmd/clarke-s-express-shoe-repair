@@ -79,9 +79,12 @@
       "status": "pending"
     },
     "infra": {
-      "status": "stale",
-      "stale_reason": "features changed; review and record this stage again",
-      "invalidated": "2026-10-17T13:28:44.127866+00:00"
+      "status": "done",
+      "recorded": "2026-10-17T13:56:09.613216+00:00",
+      "evidence": [
+        "private/runs/infra-r1.md and receipts: all three independent HTTPS/noindex placeholders match remote branch heads; state persistence/backup restores, isolated OAuth clients, protections, push deployment and sibling preservation verified. Parent independently confirmed all three HTTP 200 and version.json."
+      ],
+      "revision": "7cc259a097d6a736a057d84726eda6ae74ffbfc7"
     },
     "template": {
       "status": "stale",
@@ -97,5 +100,5 @@
       "status": "pending"
     }
   },
-  "updated": "2026-10-17T13:28:44.276422+00:00"
+  "updated": "2026-10-17T13:56:09.613233+00:00"
 }
