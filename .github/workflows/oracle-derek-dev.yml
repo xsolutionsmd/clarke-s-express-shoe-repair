@@ -88,7 +88,7 @@ jobs:
               raise ValueError('Existing release manifest has an invalid schema')
           if manifest['revision'] != os.environ['GITHUB_SHA']:
               raise ValueError('Existing release manifest revision differs from the requested release')
-          if not isinstance(manifest['image'], str) or not re.fullmatch(r'ghcr\.io/xsolutionsmd/clarke\-s\-express\-shoe\-repair\-abdul\-dev@sha256:[0-9a-f]{64}', manifest['image']):
+          if not isinstance(manifest['image'], str) or not re.fullmatch(r'ghcr\.io/xsolutionsmd/clarke\-s\-express\-shoe\-repair\-derek\-dev@sha256:[0-9a-f]{64}', manifest['image']):
               raise ValueError('Existing release manifest image is not the expected package and digest')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('reuse=true\n')

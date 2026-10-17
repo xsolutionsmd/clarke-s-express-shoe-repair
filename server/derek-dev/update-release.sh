@@ -83,7 +83,7 @@ if p.stat().st_size >= 4096: raise ValueError('Oversized manifest')
 d=json.loads(p.read_text())
 if not isinstance(d,dict) or set(d) != {'revision','image'}: raise ValueError('Invalid manifest fields')
 if not isinstance(d['revision'],str) or not re.fullmatch(r'[0-9a-f]{40}',d['revision']): raise ValueError('Invalid revision')
-if not isinstance(d['image'],str) or not re.fullmatch(r'ghcr\.io/xsolutionsmd/clarke\-s\-express\-shoe\-repair\-abdul\-dev@sha256:[0-9a-f]{64}',d['image']): raise ValueError('Invalid image')
+if not isinstance(d['image'],str) or not re.fullmatch(r'ghcr\.io/xsolutionsmd/clarke\-s\-express\-shoe\-repair\-derek\-dev@sha256:[0-9a-f]{64}',d['image']): raise ValueError('Invalid image')
 print(d['revision']); print(d['image'])
 PY
 )
