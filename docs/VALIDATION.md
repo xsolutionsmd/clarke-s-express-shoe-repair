@@ -1,5 +1,14 @@
 # Validation
 
+## First release checks, 2026-10-17
+
+The first hosted check at 6a8d4f9 failed the real 12 MP HEIC conversion with
+IMAGE_LIMIT_EXCEEDED; 136 other backend cases passed. The isolated decoder now
+sets MALLOC_ARENA_MAX=1 explicitly before process startup. No sandbox, resource
+limit, accepted image type or frontend behavior changed. Required hosted checks
+must pass before publishing this correction. The original reviewed build receipt
+remains at 37fd564; this targeted release correction is recorded separately.
+
 ## Accepted pre-release build, 2026-10-17
 
 Committed runtime 37fd564eb87aeffb6223d70b482c1662d483d57e passed the final combined

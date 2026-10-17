@@ -24,8 +24,8 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Build is accepted. Perform the authorized first release to all three environments, then verify all 13 live rows including actual Google/Gmail. Install the updated environment-bound backup restore scripts on all three hosts during release. Record final branch-specific revisions after pushing the final handoff/state commits. Private visual-r5.md and acceptance-gaps-r6.md retain exact evidence and limitations.
+The first preview CI run rejected the 12 MP HEIC conversion under its memory limit (136 other backend cases passed). The decoder now explicitly limits glibc allocator arenas inside its isolated environment; sandbox, memory/CPU/time limits are unchanged. Verify required CI before release. Reviewed environment-bound backup/updater scripts and units are installed on all three environments with preserved runtime configuration and keys. Complete the authorized release and all 13 live rows, then record final branch-specific revisions after the handoff/state commits.
 
 ## Blockers / waiting on
 
-Review triage is complete. Feature acceptance and release remain open. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
+Review triage is complete. Release CI and live feature acceptance remain open. Real Google/Gmail requires a signed-in operator browser; the default profile is signed out and the Chrome automation fallback was stopped by its URL-verification safeguard. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
