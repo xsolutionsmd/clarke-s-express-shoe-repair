@@ -1,0 +1,23 @@
+<form class="lookup-form" data-lookup action="/api/v1/status/lookup" method="post" data-xs-delivery="/api/v1/status/lookup" novalidate>
+            <div class="lookup-error form-alert" data-lookup-error role="alert" hidden></div>
+            <div class="field">
+              <label for="lookup-reference">Repair reference</label>
+              <input id="lookup-reference" name="reference" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" aria-describedby="lookup-reference-help" required>
+              <p class="field-help" id="lookup-reference-help">Starts with CLK, from your confirmation email or slip.</p>
+            </div>
+            <fieldset class="field choice-inline">
+              <legend>Confirm with</legend>
+              <div class="segmented">
+                <label><input type="radio" name="verifyType" value="email" checked><span>Email</span></label>
+                <label><input type="radio" name="verifyType" value="phone_last4"><span>Phone, last four digits</span></label>
+              </div>
+            </fieldset>
+            <div class="field">
+              <label for="lookup-value" data-lookup-value-label>Email address</label>
+              <input id="lookup-value" name="value" type="email" autocomplete="email" maxlength="254" aria-describedby="lookup-value-help" required>
+              <p class="field-help" id="lookup-value-help" data-lookup-value-help>The email you used for the request.</p>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit"><span class="btn-label">Find my repair</span></button>
+            </div>
+          </form>
