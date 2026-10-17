@@ -1,0 +1,14 @@
+CREATE TABLE integration_secrets(name TEXT PRIMARY KEY,ciphertext TEXT,version INTEGER NOT NULL DEFAULT 1,sender_generation INTEGER NOT NULL DEFAULT 1,state TEXT NOT NULL,connected_at INTEGER,last_success_at INTEGER,last_error_code TEXT);
+CREATE TABLE revocations(id TEXT PRIMARY KEY,encrypted_token TEXT,due_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,attempt_count INTEGER NOT NULL DEFAULT 0,outcome TEXT);
+CREATE TABLE outbox(id TEXT PRIMARY KEY,event_key TEXT NOT NULL UNIQUE,event_id TEXT NOT NULL,request_id TEXT REFERENCES requests(id),offer_id TEXT REFERENCES offers(id),invite_id TEXT REFERENCES invitations(id),kind TEXT NOT NULL,recipient_norm TEXT NOT NULL,subject TEXT NOT NULL,body_cipher TEXT,policy_reason TEXT,status TEXT NOT NULL CHECK(status IN ('preview_only','pending','sending','sent','retry_wait','failed','uncertain','cancelled')),version INTEGER NOT NULL DEFAULT 1,sender_generation INTEGER NOT NULL,attempt_count INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,next_attempt_at INTEGER,sent_at INTEGER,lease_token TEXT,lease_expires_at INTEGER,last_error_code TEXT,provider_message_id TEXT,last_retried_by TEXT REFERENCES members(id),duplicate_ack INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX outbox_due ON outbox(status,next_attempt_at,created_at);
+CREATE INDEX outbox_request ON outbox(request_id,created_at);
+CREATE TABLE outbox_attempts(id TEXT PRIMARY KEY,outbox_id TEXT NOT NULL REFERENCES outbox(id),attempt_number INTEGER NOT NULL,started_at INTEGER NOT NULL,finished_at INTEGER,result TEXT NOT NULL,error_code TEXT,provider_message_id TEXT,retry_actor_id TEXT REFERENCES members(id),duplicate_ack INTEGER NOT NULL DEFAULT 0,UNIQUE(outbox_id,attempt_number));
+CREATE TABLE audit_events(id TEXT PRIMARY KEY,actor_id TEXT REFERENCES members(id),action TEXT NOT NULL,entity_type TEXT NOT NULL,entity_id TEXT,from_version INTEGER,to_version INTEGER,summary TEXT NOT NULL,created_at INTEGER NOT NULL);
+CREATE INDEX audit_entity ON audit_events(entity_type,entity_id,created_at);
+CREATE TABLE idempotency(actor_scope_hash TEXT NOT NULL,route TEXT NOT NULL,key_hash TEXT NOT NULL,canonical_payload_hash TEXT,encrypted_response TEXT,status INTEGER,entity_id TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,tombstone INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(actor_scope_hash,route,key_hash));
+CREATE INDEX idempotency_expiry ON idempotency(expires_at);
+CREATE TABLE rate_limits(bucket_key TEXT PRIMARY KEY,tokens REAL NOT NULL,refill_at INTEGER NOT NULL,expires_at INTEGER NOT NULL);
+CREATE INDEX rate_expiry ON rate_limits(expires_at);
+CREATE TABLE file_deletions(id TEXT PRIMARY KEY,photo_id TEXT REFERENCES photos(id),storage_key TEXT NOT NULL UNIQUE,queued_at INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,completed_at INTEGER);
+CREATE INDEX deletions_pending ON file_deletions(completed_at,queued_at);

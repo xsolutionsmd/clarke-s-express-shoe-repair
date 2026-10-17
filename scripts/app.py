@@ -35,6 +35,7 @@ def revision():
 def environment(args, image=None, project=None, revision_value=None):
     env = os.environ.copy()
     env.update(APP_PORT=str(args.port or CONFIG["local_port"]),
+               PUBLIC_ORIGIN="http://127.0.0.1:" + str(args.port or CONFIG["local_port"]),
                APP_REVISION=revision_value or revision(),
                APP_SOURCE_URL="https://github.com/" + CONFIG["repository"])
     if image:
@@ -145,12 +146,27 @@ def run_e2e(env, project, expected):
         candidate_id = compose("installed", "ps", "--quiet", CONFIG["service"], env=env, project=project, capture=True)
         if not candidate_id or len(candidate_id.splitlines()) != 1:
             raise RuntimeError("E2E needs exactly one candidate service container.")
-        run("docker", "network", "create", network)
+        inspected = json.loads(run("docker", "inspect", candidate_id, capture=True))[0]
+        if inspected["Config"]["Labels"].get("com.docker.compose.project") != project or "-check-" not in project:
+            raise RuntimeError("Refusing a volume that does not belong to this isolated check.")
+        mounts = [m for m in inspected["Mounts"] if m["Destination"] == "/data"]
+        if len(mounts) != 1 or mounts[0]["Type"] != "volume":
+            raise RuntimeError("The check fixture requires its exact synthetic named data volume.")
+        volume = mounts[0]["Name"]
+        info = json.loads(run("docker", "volume", "inspect", volume, capture=True))[0]
+        if (info.get("Labels") or {}).get("com.docker.compose.project") != project:
+            raise RuntimeError("Synthetic volume ownership could not be verified.")
+        host = inspected["HostConfig"]
+        if inspected["Config"]["User"] != "10001:10001" or host["Memory"] != 268435456 or host["PidsLimit"] != 100 or not host["ReadonlyRootfs"]:
+            raise RuntimeError("Candidate runtime limits or non-root identity changed.")
+        run("docker", "network", "create", "--internal", network)
         created = True
         run("docker", "network", "connect", "--alias", "candidate", network, candidate_id)
         connected = True
         base = "http://candidate:" + str(CONFIG["container_port"])
         result = run("docker", "run", "--rm", "--name", container, "--network", network,
+                     "--mount", "type=volume,source=" + volume + ",target=/data",
+                     "--env", "XS_E2E_ISOLATED=" + project,
                      "--env", "BASE_URL=" + base, "--env", "APP_REVISION=" + expected, image, check=False)
         if result:
             raise E2EFailure(result)
@@ -170,14 +186,37 @@ def candidate(args, image, expected, e2e=False):
     project = CONFIG["name"] + "-check-" + uuid.uuid4().hex[:10]
     env = environment(args, image=image, revision_value=expected)
     env["APP_PORT"] = "0"
+    env["PUBLIC_ORIGIN"] = "http://candidate:" + str(CONFIG["container_port"])
+    if e2e:
+        # Reserved fictional phone; only generate a manual sms: link for the isolated fixture.
+        env["DEMO_ALLOWED_PHONES"] = "+12025550123"
+    keep = False
     try:
         compose("installed", "up", "--detach", "--no-build", "--wait", "--wait-timeout", "90", env=env, project=project)
         verify_http("installed", env, expected, project)
         if e2e:
             run_e2e(env, project, expected)
+        if getattr(args, "keep_candidate", False):
+            address = compose("installed", "port", CONFIG["service"], str(CONFIG["container_port"]), env=env, project=project, capture=True).splitlines()[0]
+            env["APP_PORT"] = address.rsplit(":", 1)[1]
+            env["PUBLIC_ORIGIN"] = "http://127.0.0.1:" + env["APP_PORT"]
+            compose("installed", "up", "--detach", "--no-build", "--wait", env=env, project=project)
+            ident = compose("installed", "ps", "--quiet", CONFIG["service"], env=env, project=project, capture=True)
+            export = STATE / (project + "-sessions.json")
+            run("docker", "cp", ident + ":/data/e2e-sessions.json", export)
+            sessions = json.loads(export.read_text(encoding="utf-8"))
+            for value in sessions.values():
+                value["cookie"]["url"] = env["PUBLIC_ORIGIN"]
+            export.write_text(json.dumps(sessions), encoding="utf-8")
+            receipt = dict(project=project, image=image, origin=env["PUBLIC_ORIGIN"], port=env["APP_PORT"], revision=expected, sessions=str(export))
+            (STATE / "candidate.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            keep = True
+            print("Isolated synthetic browser candidate: " + env["PUBLIC_ORIGIN"] + "; private session export: " + str(export))
+            print("Retained for the requested integration walkthrough; recheck and remove after it with: python scripts/app.py clean-candidate")
     finally:
         # The project was generated here, never an existing installation. Only its synthetic volume is removed.
-        compose("installed", "down", "--volumes", env=env, project=project)
+        if not keep:
+            compose("installed", "down", "--volumes", env=env, project=project)
 
 
 def backup(mode, env):
@@ -361,19 +400,37 @@ def check_app(args):
             command += ["--tag", image]
         run(*command, ".")
     image_revision(image)
+    run("docker", "run", "--rm", "--network", "none", "--read-only", "--entrypoint", "python", image,
+        "-c", "import importlib.util,pathlib; assert not any(pathlib.Path(p).exists() for p in ['/workspace/tests','/e2e','/opt/test-fixtures']); assert importlib.util.find_spec('pytest') is None; from server import create_app; print('Runtime excludes test fixtures and test packages.')")
     e2e = has_e2e_stage()
     candidate(args, image, expected, e2e=e2e)
     print("Container tests, runtime health, source label and exact revision" +
           (", and E2E" if e2e else "") + " passed: " + expected)
+    if not getattr(args, "keep_candidate", False):
+        run("docker", "image", "rm", image, check=False)
+
+
+def clean_candidate(args):
+    path = STATE / "candidate.json"
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    project = receipt["project"]
+    if not re.fullmatch(re.escape(CONFIG["name"]) + r"-check-[0-9a-f]{10}", project):
+        raise RuntimeError("Unrecognized candidate identity; no resource removed.")
+    env = environment(args, image=receipt["image"], revision_value=receipt["revision"])
+    env.update(APP_PORT=receipt["port"], PUBLIC_ORIGIN=receipt["origin"])
+    compose("installed", "down", "--volumes", env=env, project=project)
+    run("docker", "image", "rm", receipt["image"], check=False)
+    print("Removed only the recorded candidate containers/network/synthetic volume/image. Recycle the private .runtime candidate/session receipts after review.")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("start", "update", "doctor", "check", "stop", "status", "logs"))
+    parser.add_argument("action", choices=("start", "update", "doctor", "check", "clean-candidate", "stop", "status", "logs"))
     parser.add_argument("--mode", choices=("dev", "installed"), default="dev")
     parser.add_argument("--image")
     parser.add_argument("--allow-local-image", action="store_true")
     parser.add_argument("--port", type=int)
+    parser.add_argument("--keep-candidate", action="store_true", help="After a passing check, retain only its isolated synthetic candidate for a local walkthrough.")
     args = parser.parse_args()
     if args.port is not None and not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
@@ -383,6 +440,8 @@ def main():
             doctor()
         elif args.action == "check":
             check_app(args)
+        elif args.action == "clean-candidate":
+            clean_candidate(args)
         elif args.action == "update" and args.mode == "dev":
             followup = source_update(args)
         elif args.action in ("start", "update"):

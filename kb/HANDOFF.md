@@ -16,7 +16,7 @@ Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. Identity, research, feature spec, media shortlist, verified team delivery, infrastructure and template are complete. All three independent stateful HTTPS/noindex placeholders match revision 7cc259a097d6a736a057d84726eda6ae74ffbfc7, with persistence and backup restores verified. Application implementation and functional release have not started.
+2026-10-17: functional/full pipeline in progress. Research, media delivery, infrastructure and template are complete. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend implementation passed 69 local tests and a real HTTP container replacement/full-state restore drill. Frontend implementation is partial. Combined build, browser acceptance and functional release have not passed.
 
 ## Last session
 
@@ -24,8 +24,8 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Implement backend and frontend with separate file ownership against docs/API.md, committed at f116c96226ecee432c2734303d9e03bdf873c78d. The Restory template, desktop/phone form evidence and design tokens are recorded in design-brief.md and DESIGN.md. REA could not attach and the single Stitch attempt produced no screen; bounded fallback used direct browser inspection. Reference post-submission behavior remains unverified. Google clients are provisioned; actual Google sign-in and Gmail delivery require the backend. All 45 pre-release and 13 live acceptance scenarios still require implementation and evidence.
+Finish missing admin screens/styles and synchronize the frontend dependency lock; then run scripts/app.py check, code review, and desktop/tablet/phone walkthroughs. Backend prepared 44 browser cases but none has executed. Review the locations.js stale-state refresh deadline reported by backend. The Restory direction and bounded REA/Stitch fallback are recorded in design-brief.md and DESIGN.md. All 45 pre-release and 13 live acceptance rows remain fail pending their complete scenario evidence; actual Google/Gmail checks are still required.
 
 ## Blockers / waiting on
 
-No access blocker currently. Owner-dependent policies are demo defaults/open questions until operational handover, not evidence of client approval.
+Frontend implementation stopped at a provider rate limit, repeated on one bounded recovery attempt. Partial source is preserved but incomplete and unverified. Backend round is complete and ready for review. Resume frontend when the required provider is available or the user explicitly changes model routing; do not repeatedly relaunch failed tasks. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.

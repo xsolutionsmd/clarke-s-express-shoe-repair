@@ -5,6 +5,15 @@ services:
       - "127.0.0.1:${APP_PORT:-8787}:8080"
     volumes:
       - app-data:/data
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://127.0.0.1:8787}
+      DEMO_MODE: "true"
+      DEMO_ALLOWED_PHONES: ${DEMO_ALLOWED_PHONES:-}
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    pids_limit: 100
+    security_opt: [no-new-privileges:true]
     init: true
     restart: unless-stopped
 volumes:

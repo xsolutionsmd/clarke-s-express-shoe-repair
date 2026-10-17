@@ -677,6 +677,9 @@ Backward changes and closed-ticket reopening require a staff-only `reason` of
 status other than the offer's response state supersedes its unanswered offer.
 Statuses are words, never decorative numbered steps. Patching to the same status
 with no changed fields is a no-op (does not enqueue another email or increment).
+`not_repairable` is a branch from the repair flow: entering it requires the public
+explanation, while leaving it for an active status requires a staff-only reason.
+Moving from that assessment to `cancelled` simply closes the request.
 
 `GET /api/v1/admin/requests?filter=new&location=bel_air&q=boot&limit=25&cursor=...`
 → 200 common list of RequestSummary objects:
@@ -1238,10 +1241,10 @@ The frontend does not put staff search contact values into page URLs or analytic
 
 Existing `scripts/app.py` creates a uniquely named candidate Compose project,
 ephemeral host port (`APP_PORT=0`), network and `/data` volume, then passes
-`BASE_URL=http://candidate:8080` to Docker target `e2e`. It currently **does not**
-mount that candidate volume in e2e. Backend implementation must add a tightly
-scoped handoff of **only that exact candidate's synthetic named volume** to the
-fixture image; inspect its Compose ownership label/project ID first. No installed
+`BASE_URL=http://candidate:8080` to Docker target `e2e`. The launcher mounts
+**only that exact candidate's synthetic named volume** into the fixture image,
+after checking the container and volume Compose ownership labels, UID, read-only
+filesystem and memory/PID limits. No installed
 or live data volume, root runtime.env, real OAuth token, host Docker socket or
 application login secret is provided to the test container.
 
@@ -1259,9 +1262,9 @@ live DB file replacement. Never seed demo instances on application startup.
 
 Fixture code exists **only** in the `e2e` Docker target and its build context;
 exclude it, test packages, fixture keys/accounts, test-clock controls, mock Gmail
-adapter and browser binaries from `runtime`. `.dockerignore` currently excludes
-root `tests/`; backend must admit only required test sources for build stages,
-then use explicit COPY into test/e2e, never blanket COPY into runtime. A build check
+adapter and browser binaries from `runtime`. `.dockerignore` admits only
+`tests/e2e` beneath root `tests/`; explicit COPY puts test sources into test/e2e,
+never into runtime. A build check
 inspects the runtime image for fixture paths/routes/env/header bypasses. Negative
 tests enumerate **every** admin API/asset with no cookie and expired/revoked/wrong
 role sessions; all must reject. Public login shell and OAuth callback are the
@@ -1282,6 +1285,20 @@ HTTP candidate. No published fixed e2e port; use discovered ephemeral port only
 for read-only local inspection. All temporary candidate containers/networks/volumes,
 test images and nonshared disposable build cache are removed by exact identity
 after result capture, preserving designated local app environments/tool homes.
+
+`check --keep-candidate` retains a successful isolated candidate for the local
+integration walkthrough, switches its configured origin to its discovered loopback
+port and exports synthetic Admin/Viewer signed cookies into gitignored `.runtime/`.
+Those cookies come from the e2e-only direct-DB fixture; no runtime seed or login
+shortcut exists. Remove that exact candidate afterward with `clean-candidate`.
+The e2e candidate permits only the reserved fictional phone +1-202-555-0123 for
+manual SMS-link assertions; email allowlists remain empty, so no email is sent.
+
+Decoder implementation detail: libheif uses pthreads for tiled HEIC even with
+decoder workers disabled. The seccomp policy permits only thread-form `clone`
+(`CLONE_THREAD`), makes `clone3` unavailable and denies fork/vfork/exec, file opens,
+network sockets and process-memory access. Threads inherit the same filter and
+descriptor-only access. Each conversion checks file, socket and fork denial.
 
 Unit tests inject a clock into time functions for DST/gap/fold cases; runtime does
 not read a public test-clock header. Dependency failure tests use a fake transport
