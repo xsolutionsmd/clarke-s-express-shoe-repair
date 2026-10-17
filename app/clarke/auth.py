@@ -135,15 +135,18 @@ def invitation_view(r):
 
 @bp.get('/api/v1/admin/team/members')
 def members():
-    with connect() as c:return ok(paginate([member_view(r) for r in c.execute('SELECT * FROM members ORDER BY joined_at DESC,id DESC')]))
+    with connect() as c:return ok(paginate(c,'members',member_view,order=('joined_at','id')))
 
 @bp.get('/api/v1/admin/team/invitations')
 def invitations():
     with connect() as c:
-        values=[invitation_view(r) for r in c.execute('SELECT * FROM invitations ORDER BY created_at DESC,id DESC')]
-        state=request.args.get('state')
-        if state:values=[r for r in values if r['state']==enum(state,{'pending','accepted','expired','revoked'},'state')]
-        return ok(paginate(values))
+        state=request.args.get('state') or None
+        where='1';args=[]
+        if state:
+            enum(state,{'pending','accepted','expired','revoked'},'state')
+            where="(CASE WHEN accepted_at IS NOT NULL THEN 'accepted' WHEN revoked_at IS NOT NULL THEN 'revoked' WHEN expires_at<=? THEN 'expired' ELSE 'pending' END)=?"
+            args=[now(),state]
+        return ok(paginate(c,'invitations',invitation_view,where,args,filters={'state':state}))
 
 @bp.post('/api/v1/admin/team/invitations')
 def create_invite():

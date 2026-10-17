@@ -77,7 +77,9 @@ def notify(c,r,event,kind,offer=None):
     return [enqueue(c,event,kind,destination,subject,'\n\n'.join(lines),r['id'],offer['id'] if offer else None)['id'] for destination in sorted(set(recipients))]
 
 def cancel_stale(c,r):
-    c.execute("UPDATE outbox SET status='cancelled',version=version+1,updated_at=? WHERE request_id=? AND status IN ('pending','retry_wait') AND ((offer_id IS NOT NULL AND (offer_id IS NOT ? OR offer_id IN (SELECT id FROM offers WHERE state<>'active'))) OR (kind='customer_ready' AND (?<>'ready' OR event_id NOT IN (SELECT id FROM request_events WHERE request_id=? AND status='ready' AND request_version=?))))",(now(),r['id'],r['current_offer_id'],r['status'],r['id'],r['version']))
+    for queued in c.execute("SELECT * FROM outbox WHERE request_id=? AND status IN ('pending','retry_wait') AND (offer_id IS NOT NULL OR kind='customer_ready')",(r['id'],)).fetchall():
+        if not current_event(c,queued):
+            c.execute("UPDATE outbox SET status='cancelled',version=version+1,updated_at=?,next_attempt_at=NULL WHERE id=?",(now(),queued['id']))
 
 def current_event(c,r):
     if r['request_id']:
@@ -86,7 +88,9 @@ def current_event(c,r):
             offer=row(c,'offers',r['offer_id'])
             if repair['current_offer_id']!=r['offer_id'] or offer['state']!='active' or repair['status'] not in ('estimate_sent','needs_visit'):return False
         if r['kind']=='customer_ready':
-            latest=c.execute("SELECT id FROM request_events WHERE request_id=? AND status='ready' AND type='status_changed' ORDER BY request_version DESC LIMIT 1",(r['request_id'],)).fetchone()
+            # Only entering ready or changing its pickup location creates a new
+            # ready notification. Notes/message/dropoff edits preserve that event.
+            latest=c.execute("SELECT e.id FROM request_events e JOIN outbox o ON o.event_id=e.id WHERE e.request_id=? AND o.kind='customer_ready' ORDER BY e.request_version DESC,e.id DESC LIMIT 1",(r['request_id'],)).fetchone()
             if repair['status']!='ready' or not latest or latest['id']!=r['event_id']:return False
     if r['invite_id']:
         invitation=row(c,'invitations',r['invite_id'])
@@ -181,7 +185,7 @@ def get_outbox():
     clauses=[];args=[]
     for name,column in [('status','status'),('requestId','request_id')]:
         if request.args.get(name):clauses.append(column+'=?');args.append(request.args[name])
-    with connect() as c:return ok(paginate([outbox_view(c,r) for r in c.execute('SELECT * FROM outbox'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY created_at DESC,id DESC',args)]))
+    with connect() as c:return ok(paginate(c,'outbox',lambda r:outbox_view(c,r),' AND '.join(clauses) or '1',args,filters=dict(zip(clauses,args))))
 
 @bp.get('/api/v1/admin/outbox/<ident>')
 def get_email(ident):

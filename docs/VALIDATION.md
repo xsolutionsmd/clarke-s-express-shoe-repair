@@ -2,6 +2,15 @@
 
 ## Local backend implementation, 2026-10-17
 
+Independent backend review reproduced five defects and one browser-test gap.
+Local fixes now pass 121 backend/API tests, 61 recovery tests and 54 updater cases.
+They cover environment-bound restore preflight, ready-email preservation, midnight
+submission replay, query-bound keyset pagination, backward offer transitions and
+a stronger duplicate-submission assertion. Recovery host actions were mocked;
+the updated backup scripts have not been installed or verified on Oracle.
+The strengthened browser test is collected, not executed. Final combined review
+and frontend acceptance remain open.
+
 69 backend tests passed under the 256 MB read-only container limits, including
 authentication/roles, concurrency, DST, demo outbox behavior and genuine 12 MP HEIC
 conversion with metadata removal. `python scripts/check_backend.py` passed actual

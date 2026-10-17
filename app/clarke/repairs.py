@@ -8,7 +8,7 @@ from flask import Blueprint,current_app,g,request
 from .core import ApiError,DAY,CLOSED,LOCATIONS,STATUSES,DISCLAIMER,now,iso,uid,token,digest,encrypt,decrypt,body,ok,row,version,audit,replay,remember,paginate,fail
 from .db import connect,transaction,settings
 from .security import require_staff,limit,trusted_ip
-from .validation import repair,text,enum,phone,reference,unique_array,integer,NY,email
+from .validation import repair,needed_by_current,text,enum,phone,reference,unique_array,integer,NY,email
 from .locations import locations,route_message
 
 bp=Blueprint('repairs',__name__)
@@ -91,12 +91,13 @@ def submit():
     from .uploads import authorize_draft
     from .mail import notify
     original=body(REPAIR_FIELDS|{'draftId','photoIds','consentVersion','website'})
-    p=repair(original);p.update(draftId=text(original.get('draftId'),'draftId',1,100),photoIds=unique_array(original.get('photoIds',[]),'photoIds',None,5),consentVersion=enum(original.get('consentVersion'),{'repair-intake-v1'},'consentVersion'),website=original.get('website',''))
+    p=repair(original,validate_time=False);p.update(draftId=text(original.get('draftId'),'draftId',1,100),photoIds=unique_array(original.get('photoIds',[]),'photoIds',None,5),consentVersion=enum(original.get('consentVersion'),{'repair-intake-v1'},'consentVersion'),website=original.get('website',''))
     if p['website']!='':raise ApiError('VALIDATION_FAILED')
     with transaction() as c:
         draft=authorize_draft(c,p['draftId']);scope='draft:'+draft['id'];prior=replay(c,scope,p)
         if prior:return prior
         if draft['state']=='submitted':return remember(c,scope,p,decrypt(draft['receipt_cipher']),200,draft['request_id'],True)
+        needed_by_current(p['neededBy'])
         if not settings(c)['intakeAccepting']:raise ApiError('INTAKE_PAUSED',409,details={'message':settings(c)['intakePauseMessage']})
         limit(c,'request-ip',trusted_ip(),10,3600000)
         for field in ('email','phone'):
@@ -142,7 +143,7 @@ def get_public_events():
     with transaction() as c:
         r=bearer(c)
         limit(c,'status-ip',trusted_ip(),60,60000);limit(c,'status-token',r['id'],30,60000)
-        return ok(paginate([event_view(e) for e in c.execute("SELECT * FROM request_events WHERE request_id=? AND visibility='customer' ORDER BY created_at DESC,id DESC",(r['id'],))]))
+        return ok(paginate(c,'request_events',event_view,"request_id=? AND visibility='customer'",(r['id'],),scope='status:'+r['id']+':'+r['status_token_hash']))
 
 @bp.post('/api/v1/status/responses')
 def respond():
@@ -187,8 +188,7 @@ def inbox():
             normalized=''.join(ch for ch in query if ch.isdigit()) if any(ch.isdigit() for ch in query) else escaped
             args.extend(['%'+escaped+'%','%'+escaped+'%','%'+normalized+'%'])
     with connect() as c:
-        values=[summary(c,r) for r in c.execute('SELECT * FROM requests WHERE '+' AND '.join(where)+" ORDER BY (status='new') DESC,created_at DESC,id DESC",args)]
-        return ok(paginate(values))
+        return ok(paginate(c,'requests',lambda r:summary(c,r),' AND '.join(where),args,order=("(status='new')",'created_at','id'),filters={'where':where,'args':args}))
 
 @bp.get('/api/v1/admin/requests/<ident>')
 def get_detail(ident):
@@ -197,15 +197,25 @@ def get_detail(ident):
 @bp.post('/api/v1/admin/requests')
 def walk_in():
     from .mail import notify
-    original=body(REPAIR_FIELDS|{'internalNote'});p=repair(original,False);p['internalNote']=text(original.get('internalNote'),'internalNote',1,4000,True)
+    original=body(REPAIR_FIELDS|{'internalNote'});p=repair(original,False,validate_time=False);p['internalNote']=text(original.get('internalNote'),'internalNote',1,4000,True)
     with transaction() as c:
         require_staff(c=c);scope=g.member['id'];prior=replay(c,scope,p)
         if prior:return prior
+        needed_by_current(p['neededBy'])
         r=create_record(c,p,'walk_in');ev=event(c,r,'received','Item received in the shop.')
         if p['internalNote']:c.execute('INSERT INTO notes VALUES(?,?,?,?,?,?)',(uid(),r['id'],g.member['id'],p['internalNote'],now(),1))
         notify(c,r,ev,'customer_received');notify(c,r,ev,'staff_new_request');audit(c,'request.walk_in','request',r['id'],None,1)
         result=dict(id=r['id'],reference=reference_value(r),status=r['status'],version=1,source='walk_in',createdAt=iso(r['created_at']),statusUrl=status_url(r))
         return remember(c,scope,p,result,201,r['id'],True)
+
+def validate_transition(source,target,reason=None,offer=False):
+    order=['new','reviewing','estimate_sent','needs_visit','awaiting_dropoff','in_shop','in_progress','ready','picked_up']
+    backward=(source in CLOSED and target not in CLOSED) or (source=='not_repairable' and target!='cancelled') or (target in order and source in order and order.index(target)<order.index(source))
+    if offer and (source in CLOSED or (target!=source and backward)):
+        raise ApiError('INVALID_TRANSITION',409,message='First move this request back to reviewing with a staff reason, then publish an offer.')
+    if target!=source and backward and not reason:
+        fail('reason','Explain this backward change in at least ten characters.')
+
 
 @bp.patch('/api/v1/admin/requests/<ident>')
 def update_request(ident):
@@ -221,9 +231,7 @@ def update_request(ident):
         message=text(p.get('customerMessage',r['customer_message']),'customerMessage',1,2000,True)
         if target=='not_repairable' and not message:fail('customerMessage','Explain the assessment for the customer.')
         reason=text(p.get('reason'),'reason',10,500,True)
-        order=['new','reviewing','estimate_sent','needs_visit','awaiting_dropoff','in_shop','in_progress','ready','picked_up']
-        backward=(r['status'] in CLOSED and target not in CLOSED) or (r['status']=='not_repairable' and target!='cancelled') or (target in order and r['status'] in order and order.index(target)<order.index(r['status']))
-        if target!=r['status'] and backward and not reason:fail('reason','Explain this backward change in at least ten characters.')
+        validate_transition(r['status'],target,reason)
         changed=(target,pickup,dropoff,message)!=(r['status'],r['pickup_location'],r['dropoff_location'],r['customer_message'])
         if not changed:return remember(c,scope,p,dict(id=ident,status=target,version=r['version'],updatedAt=iso(r['updated_at']),notificationEventIds=[]))
         closed=now() if target in CLOSED and r['closed_at'] is None else r['closed_at'] if target in CLOSED else None
@@ -234,8 +242,9 @@ def update_request(ident):
             c.execute("UPDATE offers SET state='superseded',version=version+1 WHERE id=?",(offer['id'],))
         c.execute('UPDATE requests SET status=?,pickup_location=?,dropoff_location=?,customer_message=?,closed_at=?,updated_at=?,version=version+1 WHERE id=? AND version=?',(target,pickup,dropoff,message,closed,now(),ident,r['version']))
         newer=row(c,'requests',ident);ev=event(c,newer,'status_changed',message or STATUSES[target]+'.',r['status'],reason)
-        cancel_stale(c,newer);notifications=[]
+        notifications=[]
         if target in ('ready','not_repairable') and (target!=r['status'] or (target=='ready' and pickup!=r['pickup_location'])):notifications=notify(c,newer,ev,'customer_'+target)
+        cancel_stale(c,newer)
         audit(c,'request.status_changed','request',ident,r['version'],newer['version'],summary='Status changed from '+r['status']+' to '+target+'.')
         return remember(c,scope,p,dict(id=ident,status=target,version=newer['version'],updatedAt=iso(newer['updated_at']),notificationEventIds=notifications))
 
@@ -253,9 +262,10 @@ def create_offer(ident):
         require_staff(c=c);scope=g.member['id'];prior=replay(c,scope,p)
         if prior:return prior
         r=row(c,'requests',ident);version(p,r)
-        if r['status'] in CLOSED:raise ApiError('INVALID_TRANSITION',409,message='Reopen this request with a reason before publishing an offer.')
+        status='estimate_sent' if p['kind']=='estimate' else 'needs_visit'
+        validate_transition(r['status'],status,offer=True)
         c.execute("UPDATE offers SET state='superseded',version=version+1 WHERE request_id=? AND state='active'",(ident,))
-        offer_id=uid();stamp=now();status='estimate_sent' if p['kind']=='estimate' else 'needs_visit'
+        offer_id=uid();stamp=now()
         c.execute("INSERT INTO offers VALUES(?,?,?,'active','USD',?,?,?,?,?,?,?,1)",(offer_id,ident,p['kind'],p.get('amountMinCents'),p.get('amountMaxCents'),p['scope'],p['timingNote'],p['customerMessage'],g.member['id'],stamp))
         c.execute('UPDATE requests SET current_offer_id=?,status=?,customer_message=?,version=version+1,updated_at=? WHERE id=? AND version=?',(offer_id,status,p['customerMessage'],stamp,ident,r['version']))
         newer=row(c,'requests',ident);ev=event(c,newer,'offer_sent',STATUSES[status]+'.',r['status'],offer=offer_id)
@@ -284,9 +294,8 @@ def children(ident,collection):
             ph=r['phone_e164'];em=r['email_norm'];phone_ok=ph and allowed(ph,'PHONES');email_ok=em and allowed(em)
             return ok(dict(callHref='tel:'+ph if phone_ok else None,smsHref='sms:'+ph if phone_ok else None,emailHref='mailto:'+em if email_ok else None,blockedByDemo=bool((ph and not phone_ok) or (em and not email_ok))))
         table='request_events' if collection=='events' else collection
-        values=list(c.execute(f'SELECT * FROM {table} WHERE request_id=? ORDER BY created_at DESC,id DESC',(ident,)))
-        data=[event_view(x,True) if collection=='events' else offer_view(c,x,True) if collection=='offers' else dict(id=x['id'],text=x['text'],authorId=x['author_id'],createdAt=iso(x['created_at'])) for x in values]
-        return ok(paginate(data))
+        project=lambda x:event_view(x,True) if collection=='events' else offer_view(c,x,True) if collection=='offers' else dict(id=x['id'],text=x['text'],authorId=x['author_id'],createdAt=iso(x['created_at']))
+        return ok(paginate(c,table,project,'request_id=?',(ident,)))
 
 @bp.post('/api/v1/admin/requests/<ident>/share-link')
 def share(ident):

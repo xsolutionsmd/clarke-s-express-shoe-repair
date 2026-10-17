@@ -59,15 +59,21 @@ def contact(value,online):
     if result['preferred'] in ('call','text') and not result['phone']:fail('contact.phone','A phone number is required for calls or texts.')
     return result
 
-def repair(p,online=True):
+def needed_by_current(value):
+    if value and date.fromisoformat(value)<datetime.fromtimestamp(now()/1000,NY).date():
+        fail('neededBy','Choose today or a later date.')
+
+
+def repair(p,online=True,validate_time=True):
     work=unique_array(p.get('workTypes',[]),'workTypes',WORK,10)
     if 'not_sure' in work and len(work)>1:fail('workTypes','Choose not sure by itself.')
     needed=p.get('neededBy') or None
     if needed is not None:
         try:
             day=date.fromisoformat(needed)
-            if day.isoformat()!=needed or day<datetime.fromtimestamp(now()/1000,NY).date():raise ValueError()
+            if day.isoformat()!=needed:raise ValueError()
         except (ValueError,TypeError):fail('neededBy','Choose today or a later date.')
+    if validate_time:needed_by_current(needed)
     return {'itemType':enum(p.get('itemType'),ITEMS,'itemType'),'workTypes':sorted(work),'description':text(p.get('description'),'description',10,2000),'brandAge':text(p.get('brandAge'),'brandAge',1,120,True),'neededBy':needed,'location':enum(p.get('location'),LOCATIONS,'location'),'contact':contact(p.get('contact'),online)}
 
 def reference(value):

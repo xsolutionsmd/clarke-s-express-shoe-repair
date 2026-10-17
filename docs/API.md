@@ -105,6 +105,8 @@ List shape is always
 `{"data":{"items":[],"nextCursor":null}}`; no hidden pagination. Page size defaults
 25, max 100; cursor is an opaque signed keyset cursor bound to the query/filter,
 valid for 30 minutes. Bad/expired cursor: 400 `INVALID_CURSOR`; reset to first page.
+The cursor also binds its resource and authenticated member or status capability;
+changing filters, principal or capability requires starting at the first page.
 Request ID is a random `X-Request-ID` response header, also in errors.
 
 Every error uses this shape, including framework/body-limit/auth errors:
@@ -750,6 +752,9 @@ bound, not pricing); maximum null for a single amount, or integer >= minimum and
 <=100,000,000. Currency fixed USD. Scope required 10–2000; timingNote null or
 1–300, optional message max 2000. Visit amount fields must be null. Closed requests
 must first be explicitly reopened; cannot create an offer on a closed request.
+An offer that would move backward (including leaving `not_repairable`) returns
+409 `INVALID_TRANSITION`: first PATCH to `reviewing` with a staff-only reason,
+then publish the offer at the resulting version. Offers accept no `reason` field.
 Every offer is immutable; creating a replacement supersedes the previous active
 offer and creates a new response opportunity. No editing an already sent amount
 without an audit trail/new offer. `sentAt` means offer published to status/outbox,
@@ -1175,6 +1180,12 @@ image rollback alone cannot undo schema changes. Existing updater quiesces and
 snapshots complete `/data`, keys and matched config before replacement; restore
 the matched set on migration failure. Test DB integrity and representative image
 reads after restore; never restore one environment's snapshot into another.
+Restore preflight uses the installed target's fixed environment/origin, image
+package and paths, plus its current trusted Compose policy. It validates archive
+runtime/release/DB identity before stopping the service or changing target state;
+the final HTTPS check uses the target's pinned origin. Older revisions of the same
+package remain restorable with matching environment and Compose policy. A changed
+Compose policy is rejected before mutation and needs operator reconciliation.
 
 ### Retention and operational cleanup
 

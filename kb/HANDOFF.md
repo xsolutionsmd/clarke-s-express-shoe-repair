@@ -16,7 +16,7 @@ Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. Research, media delivery, infrastructure and template are complete. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend implementation passed 69 local tests and a real HTTP container replacement/full-state restore drill. Frontend implementation is partial. Combined build, browser acceptance and functional release have not passed.
+2026-10-17: functional/full pipeline in progress. Research, media delivery, infrastructure and template are complete. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Backend review fixes pass 121 backend/API tests, 61 recovery tests and 54 updater cases; the earlier real HTTP replacement/full-state restore drill also passed. Frontend implementation is partial. Combined build, browser acceptance and functional release have not passed.
 
 ## Last session
 
@@ -28,4 +28,4 @@ Finish missing admin screens/styles and synchronize the frontend dependency lock
 
 ## Blockers / waiting on
 
-Frontend implementation stopped at a provider rate limit, repeated on one bounded recovery attempt. Partial source is preserved but incomplete and unverified. Backend round is complete and ready for review. Resume frontend when the required provider is available or the user explicitly changes model routing; do not repeatedly relaunch failed tasks. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.
+Frontend implementation stopped at a provider rate limit, repeated on one bounded recovery attempt. Partial source is preserved but incomplete and unverified. Backend review repairs are implemented and regression-tested; overall review triage remains open. Resume frontend when the required provider is available or the user explicitly changes model routing; do not repeatedly relaunch failed tasks. The user has been asked about an Astra override and has not answered. Owner-dependent policies remain demo defaults/open questions until operational handover, not evidence of client approval.

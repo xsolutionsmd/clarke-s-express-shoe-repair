@@ -128,18 +128,35 @@ def remember(c,scope,payload,result,status=200,entity=None,tombstone=False):
     c.execute('INSERT INTO idempotency VALUES(?,?,?,?,?,?,?,?,?,?)',(digest('actor',scope),request.path,key_required(),sha(dumps(payload)),encrypt(result),status,entity,now(),now()+7*DAY,int(tombstone)))
     return ok(result,status)
 
-def paginate(items):
+def paginate(c,table,project,where='1',args=(),order=('created_at','id'),filters=None,scope=None):
+    """Descending SQL keysets; internal SQL only, never caller-supplied columns.
+
+    Preserve full stored timestamps (wire timestamps lose milliseconds). Bind the
+    normalized filters and authenticated principal without exposing either in the
+    signed, but unencrypted, cursor. The immutable ID resolves timestamp ties.
+    """
+    scope=scope or 'member:'+g.member['id']
+    binding=digest('cursor',dumps([request.path,scope,filters or {},order]))
     try:
         limit=int(request.args.get('limit','25'))
         if not 1<=limit<=100: raise ValueError()
         cursor=request.args.get('cursor')
-        offset=0
+        after=None
         if cursor:
-            data=current_app.extensions['cursor'].loads(cursor,max_age=86400)
-            if data['path']!=request.path: raise ValueError()
-            offset=data['offset']
-            if type(offset) is not int or offset<0: raise ValueError()
+            data=current_app.extensions['cursor'].loads(cursor,max_age=1800)
+            if data['v']!=1 or data['binding']!=binding: raise ValueError()
+            after=data['after']
+            if not isinstance(after,list) or len(after)!=len(order) or any(type(x) not in (int,str) for x in after):raise ValueError()
     except Exception:
         raise ApiError('INVALID_CURSOR',400) from None
-    next_cursor=current_app.extensions['cursor'].dumps({'path':request.path,'offset':offset+limit}) if len(items)>offset+limit else None
-    return {'items':items[offset:offset+limit],'nextCursor':next_cursor}
+    clauses=[where];params=list(args)
+    if after is not None:
+        clauses.append('('+','.join(order)+') < ('+','.join('?' for _ in order)+')')
+        params.extend(after)
+    columns=','.join(f'{expression} AS __cursor_{i}' for i,expression in enumerate(order))
+    rows=c.execute(f'SELECT *,{columns} FROM {table} WHERE '+' AND '.join('('+s+')' for s in clauses)+' ORDER BY '+','.join(s+' DESC' for s in order)+' LIMIT ?',params+[limit+1]).fetchall()
+    next_cursor=None
+    if len(rows)>limit:
+        last=rows[limit-1]
+        next_cursor=current_app.extensions['cursor'].dumps(dict(v=1,binding=binding,after=[last[f'__cursor_{i}'] for i in range(len(order))]))
+    return {'items':[project(r) for r in rows[:limit]],'nextCursor':next_cursor}

@@ -78,11 +78,16 @@ NOTICE_FIELDS={'locations','message','reopenText','startsAt','endsAt'}
 @bp.get('/api/v1/admin/notices')
 def notices():
     with connect() as c:
-        values=[notice_view(r) for r in c.execute('SELECT * FROM notices WHERE deleted_at IS NULL ORDER BY created_at DESC,id DESC')]
         state=request.args.get('state','all');enum(state,{'scheduled','active','expired','all'},'state')
-        if state!='all':values=[r for r in values if r['state']==state]
-        if request.args.get('location'):values=[r for r in values if enum(request.args['location'],{'bel_air','dundalk'},'location') in r['locations']]
-        return ok(paginate(values))
+        location=request.args.get('location') or None
+        where=['deleted_at IS NULL'];args=[]
+        if state!='all':
+            where.append("(CASE WHEN starts_at>? THEN 'scheduled' WHEN ends_at<=? THEN 'expired' ELSE 'active' END)=?")
+            stamp=now();args.extend([stamp,stamp,state])
+        if location:
+            enum(location,{'bel_air','dundalk'},'location')
+            where.append('EXISTS (SELECT 1 FROM json_each(notices.locations) WHERE value=?)');args.append(location)
+        return ok(paginate(c,'notices',notice_view,' AND '.join(where),args,filters={'state':state,'location':location}))
 
 @bp.post('/api/v1/admin/notices/preview')
 def preview_notice():
@@ -129,5 +134,5 @@ def audit_list():
     for field,column in [('requestId','entity_id'),('actorId','actor_id'),('action','action')]:
         if request.args.get(field):clauses.append(column+'=?');args.append(request.args[field])
     with connect() as c:
-        result=[dict(id=r['id'],at=iso(r['created_at']),actorId=r['actor_id'],action=r['action'],entityType=r['entity_type'],entityId=r['entity_id'],fromVersion=r['from_version'],toVersion=r['to_version'],summary=r['summary']) for r in c.execute('SELECT * FROM audit_events'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY created_at DESC,id DESC',args)]
-        return ok(paginate(result))
+        project=lambda r:dict(id=r['id'],at=iso(r['created_at']),actorId=r['actor_id'],action=r['action'],entityType=r['entity_type'],entityId=r['entity_id'],fromVersion=r['from_version'],toVersion=r['to_version'],summary=r['summary'])
+        return ok(paginate(c,'audit_events',project,' AND '.join(clauses) or '1',args,filters=dict(zip(clauses,args))))

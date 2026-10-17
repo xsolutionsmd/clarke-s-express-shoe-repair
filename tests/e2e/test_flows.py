@@ -208,14 +208,49 @@ def test_offline_failure_refresh_deep_link_and_back_keep_draft(page,context):
     context.set_offline(False);page.locator('.request-form button[type="submit"]').click();receipt(page)
 
 def test_double_submit_one_record(page):
-    submit=fill(page);submit.evaluate('(el)=>{el.click();el.click();}');data=receipt(page)
+    marker='Duplicate-check-'+uuid.uuid4().hex
+    address=marker.casefold()+'@example.test'
+    submit=fill(page,address=address)
+    page.get_by_label('Your name',exact=True).fill(marker)
+    page.get_by_label('Describe the item and the problem').fill(marker+' synthetic sole repair.')
+    submissions=[]
+    page.on('request',lambda r:submissions.append(r) if r.method=='POST' and r.url.endswith('/api/v1/requests') else None)
+    submit.evaluate('(el)=>{el.click();el.click();}')
+    data=receipt(page)
+    original=list(submissions);assert original
+    for sent in original:
+        response=sent.response();assert response is not None
+        response.finished()
+        assert response.status in (200,201) and response.json()['data']==data
+    sent=original[0]
+    payload=sent.post_data_json
+    draft_token=sent.header_value('x-draft-token')
+    key=sent.header_value('idempotency-key')
+    assert draft_token and key
+    # Replay the ACTUAL browser submission through fetch, with its actual draft
+    # bearer/key, then a new key for the same submitted draft. No synthetic UI.
+    for replay_key in (key,str(uuid.uuid4())):
+        replay=mutate(page,'/requests',payload,draft=draft_token,key=replay_key)
+        assert replay['status']==200 and replay['body']['data']==data
+    from cryptography.fernet import Fernet
+    cipher=Fernet((seed_sessions.DATA/'encryption.key').read_bytes().strip())
+    decode=lambda value:json.loads(cipher.decrypt(value.encode()))
     with seed_sessions.database() as c:
-        assert c.execute('SELECT count(*) FROM requests WHERE contact_name=?',('Synthetic Browser Customer',)).fetchone()[0]>=1
-        raw=page.evaluate("JSON.parse(sessionStorage.getItem('clarke.receipt')).data.statusUrl")
-        secret=Path('/data/secret.key').read_bytes().strip()
-        import hashlib,hmac
-        digest=hmac.new(secret,('status\0'+raw.split('#token=')[1]).encode(),hashlib.sha256).hexdigest()
-        assert c.execute('SELECT count(*) FROM requests WHERE status_token_hash=?',(digest,)).fetchone()[0]==1
+        rows=c.execute('SELECT * FROM requests WHERE contact_name=? OR email_norm=?',(marker,address)).fetchall()
+        assert len(rows)==1
+        ticket=rows[0]
+        assert decode(ticket['reference_cipher'])==data['reference']
+        assert decode(ticket['status_token_cipher'])==data['statusUrl'].split('#token=')[1]
+        drafts=c.execute('SELECT * FROM drafts WHERE request_id=?',(ticket['id'],)).fetchall()
+        assert len(drafts)==1 and drafts[0]['id']==payload['draftId'] and drafts[0]['state']=='submitted'
+        assert decode(drafts[0]['receipt_cipher'])==data
+        receipts=c.execute("SELECT encrypted_response FROM idempotency WHERE route='/api/v1/requests' AND entity_id=?",(ticket['id'],)).fetchall()
+        assert receipts and all(decode(r['encrypted_response'])==data for r in receipts)
+        events=c.execute("SELECT id FROM request_events WHERE request_id=? AND type='received'",(ticket['id'],)).fetchall()
+        assert len(events)==1
+        messages=c.execute('SELECT event_id,kind,recipient_norm FROM outbox WHERE request_id=?',(ticket['id'],)).fetchall()
+        assert len(messages)==2
+        assert {tuple(r) for r in messages}=={(events[0]['id'],'customer_received',address),(events[0]['id'],'staff_new_request','alerts@example.test')}
 
 def test_pause_and_closed_confirmation(page,browser):
     staff_ctx,staff,_=staff_page(browser)
