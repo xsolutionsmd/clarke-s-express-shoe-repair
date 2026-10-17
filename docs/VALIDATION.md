@@ -1,5 +1,60 @@
 # Validation
 
+## Current release acceptance, 2026-10-17
+
+The accepted application revision is `42235a04b629b5ee53669365dd48446d70f87f6e`.
+The original visual/runtime acceptance at `37fd564eb87aeffb6223d70b482c1662d483d57e`
+is preserved below and in build-receipt history. The later decoder correction passed
+[hosted CI](https://github.com/xsolutionsmd/clarke-s-express-shoe-repair/actions/runs/39064984447)
+with 138 backend/API and 83 browser cases. Both required PR checks passed at that
+exact head. The focused R8 review found no actionable issue; 14 strict health-verifier
+cases and six isolated stack-limit checks passed. No frontend change required a new
+design review. All 45 pre-release rows pass.
+
+PR [#2](https://github.com/xsolutionsmd/clarke-s-express-shoe-repair/pull/2) was merged
+through the protected release path as `f8d72bd8f7ef84a0814c8706ad6a02887f86b4fc`.
+The [main push workflow](https://github.com/xsolutionsmd/clarke-s-express-shoe-repair/actions/runs/39066415945)
+passed and production independently matched that revision over HTTPS. Main is merged
+back to both preview branches; later preview commits carry operating records only.
+
+R9 completed all 13 live rows under the user's final single-account constraint.
+Each environment used the existing Admin's real Chrome Google session, connected
+its own Gmail sender with the existing send-only grant, and completed a 375px
+photo request, $12.34 synthetic estimate, customer acceptance, and ready-for-pickup.
+Five messages per request were observed in the actual allowlisted Gmail Inbox:
+customer receipt, staff alert, estimate, customer-response alert and ready notice.
+Sent outbox entries alone were not treated as inbox evidence.
+
+Real session revocation in a second tab was followed by the normal Google account
+chooser and same-member return; the amount and estimate text were restored in each
+environment. Nine anonymous admin collections returned 401/AUTH_REQUIRED. Customer
+status pages excluded contacts, photos and internal notes. Notices appeared on the
+customer status surface and expired without refreshing it; current Bel Air hours
+returned and Dundalk remained appointment-only. The genuine 12 MP HEIC additionally
+converted on the live ARM64 Derek preview in 2.807s during R7.
+
+The user explicitly excluded separate-account live Viewer acceptance. That flow
+was not completed or marked passed. Its local Viewer/invitation tests remain valid
+pre-release evidence only. All temporary invitations were withdrawn through Admin
+controls; no invitation mail was sent and no second member was added. The existing
+Admin, original allowlists and demo restrictions are preserved.
+
+Exact synthetic request/photo IDs, including the retained R7 request, were purged
+after protected backups. Every environment has zero remaining requests and no
+active test notice. Audit and backup history remain. Backup/update timers are
+active; the 12 sibling containers, nine HTTPS revisions and gateway remained
+unchanged. A harmless Derek-only KB commit `a9c99be01cf66d3698a8af66cbddb00d5826d2bf`
+changed only Derek's container/revision, with production and Abdul identical to
+the captured baseline. Its [preview workflow](https://github.com/xsolutionsmd/clarke-s-express-shoe-repair/actions/runs/39067543054)
+passed. Final operating-record commits are verified separately at each branch head.
+
+Owner policies remain demo defaults. No operational handover or off-server
+disaster recovery is claimed. Private R9 receipts retain exact IDs, inbox evidence,
+final branch revisions, immutable image identities, cleanup and sibling checks.
+
+The dated sections below are historical checkpoints; their earlier pending/failure
+statements do not override the current evidence above.
+
 ## First release checks, 2026-10-17
 
 The first hosted check at 6a8d4f9 failed the real 12 MP HEIC conversion with

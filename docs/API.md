@@ -4,7 +4,9 @@ Contract revision: **1**, 2026-10-17. This is the committed interface for the
 functional build, not evidence that an endpoint, integration or acceptance test
 works. The source specification is [kb/features.md](../kb/features.md), read in
 full at parent checkpoint `2da5e1fe90cbb64fbebec68e950ec78280653e4a`.
-All **45 pre-release and 13 live rows remain fail/unverified** until actually run.
+All **45 pre-release and 13 live rows pass** within the user-corrected single-account
+scope in [the feature matrix](../kb/features.md#acceptance). Separate-account live
+Viewer acceptance is excluded, not reported as passed.
 Changes to this contract go through the backend owner before either consumer changes.
 
 ## Scope, decisions and source baseline
@@ -1337,5 +1339,9 @@ Parent retains the feature matrix; no row is promoted to pass on the strength of
 this contract. The 13 later live rows require synthetic flows and actual Google
 sign-in/allowlisted inbox receipt separately on derek-dev, abdul-dev and production,
 plus active backup timers and cleanup. Google clients/protected infrastructure are
-already provisioned; actual app authentication, decoding memory fit, mail delivery,
-owner policy approval and off-server recovery remain unverified until those stages.
+already provisioned. The reviewed HEIC stack correction passes hosted tests and a
+real ARM64 HTTPS intake. R9 completed authentic Google login/re-entry and actual
+Gmail inbox receipt independently in all three environments, with exact synthetic
+cleanup. The user excluded separate-account live Viewer acceptance; its local
+coverage remains distinct. Owner policy approval and off-server recovery remain
+open dependencies. See `VALIDATION.md` for dated observations.

@@ -95,11 +95,12 @@
     },
     "build": {
       "status": "done",
-      "recorded": "2026-10-17T19:48:13.802420+00:00",
+      "recorded": "2026-10-17T20:29:09.345274+00:00",
       "evidence": [
-        "45/45 pre acceptance pass; final committed check exit0 134 backend and81 browser; R6 targeted4 backend and4 browser pass with no runtime changes; 19 findings fixed; parent visual accepted visual-r5.md; real providers and13 live rows remain deployment checks"
+        "45/45 pre acceptance pass; final committed check exit0 134 backend and81 browser; R6 targeted4 backend and4 browser pass with no runtime changes; 19 findings fixed; parent visual accepted visual-r5.md; real providers and13 live rows remain deployment checks",
+        "Accepted release correction 42235a04b629b5ee53669365dd48446d70f87f6e: hosted CI39064984447 and PR checks39065706842/39065706877 passed, 138 backend and83 browser; focused R8 review no findings,14 verifier and6 isolated stack checks pass. Original accepted visual/runtime37fd564eb87aeffb6223d70b482c1662d483d57e remains in history; no frontend change.45pre pass; authentic providers remain live acceptance."
       ],
-      "revision": "37fd564eb87aeffb6223d70b482c1662d483d57e",
+      "revision": "42235a04b629b5ee53669365dd48446d70f87f6e",
       "inputs_sha256": {
         "kb/features.md": "df4d3e80963d060440567a6743cc44b91254e597b10d1a63c357b33435502f8c",
         "kb/design-brief.md": "8d7819e43a68578dcddb12ac7707a01266797d56258868a71ef254df28e7ca9b"
@@ -109,5 +110,5 @@
       "status": "pending"
     }
   },
-  "updated": "2026-10-17T19:48:13.804023+00:00"
+  "updated": "2026-10-17T20:29:09.346081+00:00"
 }

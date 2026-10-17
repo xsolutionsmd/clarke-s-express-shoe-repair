@@ -2,8 +2,10 @@
 
 The public-safe company KB, functional repair application and independent deployment infrastructure.
 The application supports photo requests, private repair status, estimates, staff tickets,
-and location hours/notices. The first functional release is undergoing final verification;
-the live environments still serve the noindex scaffold placeholder.
+and location hours/notices. The first functional release replaces the scaffold on
+production and both previews. All environments remain noindex and in demo mode;
+45 pre-release and 13 live acceptance rows pass within the recorded single-account
+scope. Owner operational approval remains open.
 Read `AGENTS.md`, `kb/HANDOFF.md`, `kb/features.md`, and `docs/ORACLE_DEPLOYMENT.md`.
 
 Branches `main`, `derek-dev`, and `abdul-dev` each publish only their own Oracle stack.
@@ -16,5 +18,16 @@ uses `app.ps1`/`app.sh`; stateful updates quiesce the local service and copy its
 `/data` to ignored `.runtime/backups` before replacement. Preserve those keys and
 encrypted-token data; do not put `.runtime` or runtime.env into Git.
 
-The API contract is in `docs/API.md`. Google/Gmail login and delivery still require live
-acceptance. Infrastructure verification alone does not establish feature acceptance.
+The API contract is in `docs/API.md`. Real Google sign-in, same-member re-entry,
+Gmail delivery and actual test-inbox receipts passed independently on all three
+environments. Separate-account Viewer acceptance was excluded by the user; local
+Viewer/invitation coverage remains, without a live pass claim.
+
+Production: https://clarke-s-express-shoe-repair.xsolutionsmd.com
+
+Derek preview: https://clarke-s-express-shoe-repair-derek-dev.xsolutionsmd.com
+
+Abdul preview: https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com
+
+Each origin's `/version.json` reports its own deployed branch revision. Staff enter
+through `/admin/login`. See the current acceptance counts in `kb/features.md`.

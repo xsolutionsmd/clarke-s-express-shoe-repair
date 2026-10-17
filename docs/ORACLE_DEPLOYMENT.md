@@ -1,8 +1,17 @@
-# Oracle infrastructure
+# Oracle application deployment
 
-Part A installs only the scaffold placeholder. The repair application, Google sign-in
-routes, Gmail connection and business acceptance tests remain the next build stage.
-The placeholder is noindex in every environment.
+The functional repair application replaces the Part A placeholder. Production and
+both previews remain noindex with `DEMO_MODE=true`. R9 verified authentic Google
+sign-in and same-member draft restoration, separate Gmail connections, and actual
+allowlisted inbox receipts on every environment. The user restricted live testing
+to the existing Admin account, excluding separate-account Viewer acceptance. All
+temporary invitations were withdrawn without sending invitation mail.
+
+First production release: PR [#2](https://github.com/xsolutionsmd/clarke-s-express-shoe-repair/pull/2),
+merged as `f8d72bd8f7ef84a0814c8706ad6a02887f86b4fc`. Reviewed application revision:
+`42235a04b629b5ee53669365dd48446d70f87f6e`. Later preview commits update operating
+records only. Check each origin's `/version.json` against its own branch head after
+every final push; the private operator receipts retain the observed revisions/digests.
 
 See `deploy/oracle-contract.json` for exact independent identities. Production uses
 `main`; each personal preview publishes on push to its own branch. Main requires a
@@ -23,7 +32,9 @@ The runtime contract uses `PUBLIC_ORIGIN`, `DATA_DIR`, `DEMO_MODE=true`,
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INITIAL_ADMIN_EMAIL`, and the legacy
 Oasis `OPERATOR_EMAIL` alias. `SESSION_SECRET` and `ENCRYPTION_KEY` are unique per
 environment, mirrored to Oasis key files. The backend must preserve those files.
-Private test-recipient settings never enter Git or images.
+The application consumes `DEMO_ALLOWED_EMAILS`, `DEMO_ALLOWED_PHONES` (E.164) and
+`NOTIFICATION_EMAILS`; their private values never enter Git or images. All three
+environments have independent protected keys, data and OAuth clients.
 
 ## Google setup
 
@@ -34,7 +45,9 @@ Gmail-sender connection). All three exact URLs are in the deployment contract.
 Set each pair only in its environment's runtime.env, then recreate that service.
 Do not reuse another site's client or sender token. Initial admin and test-recipient
 values are provisioned privately. Client creation alone does not prove sign-in or
-email delivery; the application stage must connect and test them.
+email delivery. Use the authentic invited Google account at `/admin/login`, connect
+the sender through Admin Emails, and verify actual inbox receipt for allowlisted
+tests in each environment. Never install a synthetic staff session on a live site.
 
 ## Installation and updates
 
@@ -50,8 +63,11 @@ credentials, quiesce the old service, snapshot all data and runtime configuratio
 replace, verify exact HTTPS revision, then commit the receipt. Failure restores
 matched data/config/image. An interrupted or failed recovery leaves `transaction`
 and its recovery directory; subsequent polls refuse to overwrite that evidence.
-The placeholder candidate uses wget; a future backend image must provide wget or
-explicitly update and retest the candidate probe when changing runtime stacks.
+The functional image includes the candidate probe dependencies. `/health` returns
+exactly `{"status":"ok"}`; `/version.json` is uncached and reports the image revision.
+The reviewed environment-bound backup/updater scripts and units were installed on
+all three stacks before release, with protected runtime configuration and keys
+preserved. Both update and backup timers are enabled and active.
 
 ## Backup and restore
 
@@ -86,3 +102,10 @@ failures, snapshot/state/TERM recovery, failed rollback and interruption guard.
 `scripts/test_backup.py` covers complete SQLite/uploads/keys/config archives and
 unsafe extraction rejection. Live Part A drills additionally replace each real
 container and restore its synthetic SQLite/file fixture, then remove test data.
+
+R9 additionally completed 375px photo intake, estimate/accept/ready, customer privacy,
+notice creation and automatic expiry, exact synthetic cleanup, and the Derek-only
+branch isolation proof. All three retain one genuine Google-bound Admin, no pending
+invitations or active test notices, and zero test repair records. Backups and audit
+history are preserved. Operational owner approval and off-server recovery remain
+separate from this demo release.
