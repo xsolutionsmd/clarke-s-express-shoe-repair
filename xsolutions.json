@@ -87,9 +87,11 @@
       "revision": "7cc259a097d6a736a057d84726eda6ae74ffbfc7"
     },
     "template": {
-      "status": "stale",
-      "stale_reason": "features changed; review and record this stage again",
-      "invalidated": "2026-10-17T13:28:44.127870+00:00"
+      "status": "done",
+      "recorded": "2026-10-17T14:13:22.207824+00:00",
+      "evidence": [
+        "The Restory reference inspected at desktop and 375px; DESIGN.md and kb/design-brief.md recorded. Private runs/template-r1.md includes REA failure and bounded Stitch fallback; post-submit states unobserved. Parent verified saved form screenshots."
+      ]
     },
     "build": {
       "status": "stale",
@@ -100,5 +102,5 @@
       "status": "pending"
     }
   },
-  "updated": "2026-10-17T13:56:09.613233+00:00"
+  "updated": "2026-10-17T14:13:22.207840+00:00"
 }

@@ -191,7 +191,59 @@ Demo-complete is not operational. Each item is open until done.
 
 ## Template flow notes
 
-To be filled at the template stage: REA notes of the chosen template's intake, upload and status flows (states, validations, transitions) to match.
+Observed 2026-10-17 in the T3 preview browser at 1440 and 375 px. No form was submitted
+(not even an empty one), no account was created, nothing was added to a cart. REA could not
+attach: its own Chrome launch failed ("provider is closing") and the loopback port 9222
+answered without a DevTools listing, so DOM, attributes and visible states were read with
+in-page inspection instead. Server-side validation, emails and status pages were therefore
+not observed. Template choice and visual traits: [design brief](design-brief.md#template-site).
+
+**Template intake: The Restory quote form** (`go.the-restory.com/request-a-quote`, embedded
+in an iframe on `/us-en/exceptional-bag-restoration#form`).
+- One white card (640 px at desktop) on a light-grey page, title "Tell us about your bag",
+  required-field note under it. Three serif sub-headings inside the one card, each followed
+  by a single helper sentence: describe the issue (textarea), upload photos (dropzone), then
+  your details (name, email, address, social handle, two consent checkboxes). No wizard and
+  no step numbers; the whole form scrolls as one document.
+- Photos: dashed dropzone with "Drag & Drop Files Here / or / Browse Files"; JPEG and PNG
+  only; attributes set minimum 1, maximum 5, while the copy says "up to 4". Helper text asks
+  for exterior, interior and relevant details. A "0 of 5" counter sits in the corner.
+- Form markup identifies Contact Form 7, a honeypot field and hCaptcha. Server-side and
+  post-submission validation were not exercised; no inline error states were observed.
+- Their advertised workflow describes an assessment from notes and images, then a quote
+  by email, with order, shipping and completion emails on the paid route and an account
+  "Orders" page. These post-submission states were not tested.
+- 375 px: card goes full-bleed; every control is inset 15 px and none overflows.
+
+**Adopted** for `repair-request` and `repair-status` (spec rules above still decide):
+- Keep the one-card, sub-headed document: Your item (type, what it needs, description,
+  brand or age), Photos, Where you'll bring it (location, needed by), How to reach you.
+  Location switching slides within the card and keeps input (standing preference).
+- Dropzone plus native file button, guided wording borrowed in spirit from Rago Brothers'
+  optional photo assessment ("full item" and "close-up of the area that needs work"):
+  photos encouraged, not required (spec), up to 5, limits stated in words before
+  choosing files. Each file shows as a thumbnail chip with progress and a remove button.
+  No "0 of 5" style counter; the limit message appears only when reached. Copy and the
+  enforced limit always match (the template's 4-versus-5 mismatch is not repeated).
+- Inline validation next to each field after submit or blur, focus on the first error, input
+  and photos kept (spec); the template's validation behavior remains unverified.
+- Quote reply becomes our estimate on a tokenized status page instead of an account; status
+  is words on a progress line (spec), with email triggers defined by this site's spec.
+- Not adopted: price calculator, cart, checkout, shipping address, social-handle field,
+  newsletter consent, captcha (spec uses honeypot and rate limits).
+
+**Runner-up evidence used**
+- Rago Brothers guest mail-in form (`shop.ragobrothers.com/repairforms/new.htm`): name,
+  email, phone with mobile/home type, shipping address, then an item table ("Item", with
+  colour and brand guidance, plus "Repairs needed") with "add another item", terms
+  checkbox. Contact assessment form: up to 4 optional photos, 25 MB combined, labelled
+  "Photo of full item" and "Close-up photo of areas needing repair". A customer account
+  and a separate retailer login (repair-ticket platform) exist; both gated.
+- Leather Spa: repair wizard, estimates, status and payment are all behind sign-in.
+- SoleHeeled: a Typeform price quiz with Stripe; did not advance in the preview.
+
+**Staff admin:** no reference exposes staff screens. The admin uses the Oasis pattern with
+the public type, colour and controls; nothing here is observed from a template.
 
 ## Acceptance
 

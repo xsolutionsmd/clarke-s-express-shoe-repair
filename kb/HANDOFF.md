@@ -1,7 +1,7 @@
 # Handoff
 
 <!-- xs-status:start -->
-Pipeline status (generated 2026-10-17T13:56:09.762925+00:00):
+Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 
 - **identity**: done
 - **research**: done
@@ -9,14 +9,14 @@ Pipeline status (generated 2026-10-17T13:56:09.762925+00:00):
 - **assets**: done
 - **delivery**: done
 - **infra**: done
-- **template**: stale: features changed; review and record this stage again
+- **template**: done
 - **build**: stale: features changed; review and record this stage again
 - **deploy**: todo: record verified deploy evidence
 <!-- xs-status:end -->
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. Identity, research, feature spec, media shortlist, verified team delivery and infrastructure are complete. All three independent stateful HTTPS/noindex placeholders match revision 7cc259a097d6a736a057d84726eda6ae74ffbfc7, with persistence and backup restores verified. Application build and release have not started.
+2026-10-17: functional/full pipeline in progress. Identity, research, feature spec, media shortlist, verified team delivery, infrastructure and template are complete. All three independent stateful HTTPS/noindex placeholders match revision 7cc259a097d6a736a057d84726eda6ae74ffbfc7, with persistence and backup restores verified. Application implementation and functional release have not started.
 
 ## Last session
 
@@ -24,7 +24,7 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Select the premium functional template with REA and commit the API contract, then build backend and frontend with separate file ownership. Google clients are provisioned; actual Google sign-in and Gmail delivery require the backend. All 45 pre-release and 13 live acceptance scenarios still require implementation and evidence.
+Implement backend and frontend with separate file ownership against docs/API.md, committed at f116c96226ecee432c2734303d9e03bdf873c78d. The Restory template, desktop/phone form evidence and design tokens are recorded in design-brief.md and DESIGN.md. REA could not attach and the single Stitch attempt produced no screen; bounded fallback used direct browser inspection. Reference post-submission behavior remains unverified. Google clients are provisioned; actual Google sign-in and Gmail delivery require the backend. All 45 pre-release and 13 live acceptance scenarios still require implementation and evidence.
 
 ## Blockers / waiting on
 
