@@ -1,0 +1,16 @@
+.runtime/
+.graft-context/
+/graft/
+.reticle/
+.design-evidence/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+
+# Static frontend build output
+app/node_modules/
+app/dist/
+app/.vite/
+app/.vite-temp/

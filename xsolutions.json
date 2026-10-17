@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "toolkit": "xs-website 1.0 (2026-10-16)",
+  "name": "Clarke's Express Shoe Repair",
+  "slug": "clarke-s-express-shoe-repair",
+  "created": "2026-10-17T13:07:58.094595+00:00",
+  "repository": "xsolutionsmd/clarke-s-express-shoe-repair",
+  "visibility": "public",
+  "build_type": "functional",
+  "features": [
+    "repair-request",
+    "repair-status",
+    "staff-admin",
+    "location-notices"
+  ],
+  "endpoint": "full",
+  "identity": {
+    "status": "confirmed",
+    "official_name": "Clarke's Express Shoe Repair",
+    "address": "23 South Main St. (REAR), Bel Air, MD 21014; 6920 Holabird Ave., Dundalk, MD 21222",
+    "public_phone": "410-836-8316",
+    "public_email": null,
+    "website": "https://www.clarkesshoerepair.com/",
+    "maps_url": null,
+    "social": {},
+    "evidence": [
+      {
+        "observed": "2026-10-17T13:08:18.355293+00:00",
+        "note": "Official homepage and Yellow Pages Bel Air listing corroborate 23 S Main St and 410-836-8316; official homepage and Yellow Pages Dundalk listing corroborate 6920 Holabird Ave. https://www.yellowpages.com/bel-air-md/mip/clarkes-express-shoe-repair-16724053 https://www.yellowpages.com/dundalk-md/mip/clarkes-express-shoe-repair-11455826 Checked 2026-10-17."
+      },
+      {
+        "observed": "2026-10-17T13:08:24.993908+00:00",
+        "note": "Independent address corroboration: Yellow Pages Dundalk https://www.yellowpages.com/dundalk-md/mip/clarkes-express-shoe-repair-11455826 lists 6920 Holabird Ave, matching the official homepage. Bel Air Yellow Pages independently matches public phone 410-836-8316 and 23 S Main St. Checked 2026-10-17."
+      }
+    ]
+  },
+  "environments": [
+    {
+      "name": "production",
+      "branch": "main",
+      "hostname": "clarke-s-express-shoe-repair.xsolutionsmd.com",
+      "slug": "clarke-s-express-shoe-repair"
+    },
+    {
+      "name": "derek-dev",
+      "branch": "derek-dev",
+      "hostname": "clarke-s-express-shoe-repair-derek-dev.xsolutionsmd.com",
+      "slug": "clarke-s-express-shoe-repair-derek-dev"
+    },
+    {
+      "name": "abdul-dev",
+      "branch": "abdul-dev",
+      "hostname": "clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com",
+      "slug": "clarke-s-express-shoe-repair-abdul-dev"
+    }
+  ],
+  "stages": {
+    "identity": {
+      "status": "pending"
+    },
+    "research": {
+      "status": "done",
+      "recorded": "2026-10-17T13:22:32.988507+00:00",
+      "evidence": [
+        "Astra xhigh research r1 complete: 29 official pages, both Maps listings, Facebook, 28 Instagram posts, directories/press. Nine factual KB files, 24 cited sources, citation validation passed. Hours, legacy phone, placeholder pricing, operational-policy conflicts documented."
+      ]
+    },
+    "spec": {
+      "status": "done",
+      "recorded": "2026-10-17T13:28:44.276407+00:00",
+      "evidence": [
+        "Opus 5.5 high spec r1: photo requests, estimate/status, Google-only staff admin, location notices; 45 pre and 13 live acceptance rows unverified; stateful route. No payment or time-slot booking."
+      ]
+    },
+    "assets": {
+      "status": "pending"
+    },
+    "delivery": {
+      "status": "pending"
+    },
+    "infra": {
+      "status": "stale",
+      "stale_reason": "features changed; review and record this stage again",
+      "invalidated": "2026-10-17T13:28:44.127866+00:00"
+    },
+    "template": {
+      "status": "stale",
+      "stale_reason": "features changed; review and record this stage again",
+      "invalidated": "2026-10-17T13:28:44.127870+00:00"
+    },
+    "build": {
+      "status": "stale",
+      "stale_reason": "features changed; review and record this stage again",
+      "invalidated": "2026-10-17T13:28:44.127873+00:00"
+    },
+    "deploy": {
+      "status": "pending"
+    }
+  },
+  "updated": "2026-10-17T13:28:44.276422+00:00"
+}

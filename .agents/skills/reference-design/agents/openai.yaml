@@ -1,0 +1,13 @@
+interface:
+  display_name: "Reference-led Web Design"
+  short_description: "Build tailored interfaces from real visual references"
+  default_prompt: "Use $reference-design to build a beautiful, tailored interface for this project and verify the working desktop and mobile preview."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "inspo"
+      description: "Read-only website references and design systems"
+      transport: "streamable_http"
+      url: "https://inspomcp.dev/api/mcp?maxTokens=6000"
+policy:
+  allow_implicit_invocation: true

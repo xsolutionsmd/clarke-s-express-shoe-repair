@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "name": "clarke-s-express-shoe-repair",
+  "repository": "xsolutionsmd/clarke-s-express-shoe-repair",
+  "source": "app",
+  "service": "app",
+  "container_port": 8080,
+  "local_port": 8787,
+  "health_path": "/health",
+  "version_path": "/version.json",
+  "stateful": true,
+  "backup_mode": "quiesced-data",
+  "backup_command": null,
+  "branches": [
+    "main",
+    "derek-dev",
+    "abdul-dev"
+  ]
+}

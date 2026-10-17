@@ -1,0 +1,11 @@
+[Unit]
+Description=Check clarke-s-express-shoe-repair approved releases
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=clarke-s-express-shoe-repair-derek-dev-update.service
+
+[Install]
+WantedBy=timers.target

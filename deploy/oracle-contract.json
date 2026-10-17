@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "repository": "xsolutionsmd/clarke-s-express-shoe-repair",
+  "stateful": true,
+  "port": 8080,
+  "environments": [
+    {
+      "branch": "main",
+      "environment": "production",
+      "slug": "clarke-s-express-shoe-repair",
+      "hostname": "clarke-s-express-shoe-repair.xsolutionsmd.com",
+      "image": "ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair",
+      "root": "/opt/clarke-s-express-shoe-repair",
+      "data": "/opt/clarke-s-express-shoe-repair/data",
+      "runtime": "/opt/clarke-s-express-shoe-repair/runtime.env",
+      "state": "/var/lib/clarke-s-express-shoe-repair-deploy",
+      "oauth_callback": "https://clarke-s-express-shoe-repair.xsolutionsmd.com/oauth/callback"
+    },
+    {
+      "branch": "derek-dev",
+      "environment": "derek-dev",
+      "slug": "clarke-s-express-shoe-repair-derek-dev",
+      "hostname": "clarke-s-express-shoe-repair-derek-dev.xsolutionsmd.com",
+      "image": "ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair-derek-dev",
+      "root": "/opt/clarke-s-express-shoe-repair-derek-dev",
+      "data": "/opt/clarke-s-express-shoe-repair-derek-dev/data",
+      "runtime": "/opt/clarke-s-express-shoe-repair-derek-dev/runtime.env",
+      "state": "/var/lib/clarke-s-express-shoe-repair-derek-dev-deploy",
+      "oauth_callback": "https://clarke-s-express-shoe-repair-derek-dev.xsolutionsmd.com/oauth/callback"
+    },
+    {
+      "branch": "abdul-dev",
+      "environment": "abdul-dev",
+      "slug": "clarke-s-express-shoe-repair-abdul-dev",
+      "hostname": "clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com",
+      "image": "ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair-abdul-dev",
+      "root": "/opt/clarke-s-express-shoe-repair-abdul-dev",
+      "data": "/opt/clarke-s-express-shoe-repair-abdul-dev/data",
+      "runtime": "/opt/clarke-s-express-shoe-repair-abdul-dev/runtime.env",
+      "state": "/var/lib/clarke-s-express-shoe-repair-abdul-dev-deploy",
+      "oauth_callback": "https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com/oauth/callback"
+    }
+  ]
+}

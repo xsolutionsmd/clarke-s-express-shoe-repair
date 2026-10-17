@@ -1,0 +1,157 @@
+name: Abdul dev preview
+on:
+  push:
+    branches: [abdul-dev]
+  pull_request:
+    branches: [abdul-dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oracle-abdul-dev-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  check:
+    name: Check Abdul preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check application
+        run: |
+          python3 scripts/test_updater.py --branch abdul-dev
+          python3 scripts/test_backup.py
+          python3 scripts/app.py check
+      - name: Verify deployment image contract
+        run: |
+          set -euo pipefail
+          docker build --build-arg REVISION="$GITHUB_SHA" --build-arg APP_REVISION="$GITHUB_SHA" --build-arg APP_SOURCE_URL="https://github.com/$GITHUB_REPOSITORY" -t oracle-candidate .
+          docker run -d --name oracle-candidate --read-only --tmpfs /tmp --tmpfs /data:uid=10001,gid=10001,mode=0700 -e CANDIDATE_MODE=true -p 127.0.0.1::8080 oracle-candidate
+          trap 'docker rm -f -v oracle-candidate >/dev/null 2>&1 || true' EXIT
+          port=$(docker port oracle-candidate 8080/tcp | awk -F: '{print $NF}')
+          for attempt in $(seq 1 30); do
+            if [[ $(docker inspect oracle-candidate --format '{{.State.Health.Status}}') == healthy ]]; then break; fi
+            sleep 1
+          done
+          [[ $(docker inspect oracle-candidate --format '{{.State.Health.Status}}') == healthy ]]
+          [[ $(curl -fsS "http://127.0.0.1:$port/version.json" | jq -r .revision) == "$GITHUB_SHA" ]]
+          curl -fsS "http://127.0.0.1:$port/" -o candidate.html
+          test -s candidate.html
+  release:
+    name: Publish and verify Oracle
+    needs: check
+    if: github.ref == 'refs/heads/abdul-dev' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: abdul-dev
+      url: https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Reuse an existing immutable release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+          tag = 'abdul-dev-' + os.environ['GITHUB_SHA']
+          request = Request(
+              'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/releases/tags/' + tag,
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                       'Accept': 'application/vnd.github+json', 'User-Agent': 'app-launchpad'})
+          try:
+              with urlopen(request, timeout=20) as response:
+                  raw = response.read(1048577)
+          except HTTPError as error:
+              if error.code == 404:
+                  raise SystemExit(0)
+              raise RuntimeError('Release lookup failed with HTTP ' + str(error.code)) from None
+          if len(raw) > 1048576:
+              raise RuntimeError('Release metadata exceeds the size limit')
+          metadata = json.loads(raw)
+          if not isinstance(metadata, dict) or metadata.get('draft') is not False or metadata.get('prerelease') is not True:
+              raise RuntimeError('Existing preview is draft or not a prerelease; inspect and explicitly finish or remove it before retrying')
+          subprocess.run(['gh', 'release', 'download', tag, '--pattern', 'deployment.json'], check=True)
+          path = Path('deployment.json')
+          if path.stat().st_size >= 4096:
+              raise ValueError('Existing release manifest exceeds the size limit')
+          manifest = json.loads(path.read_text())
+          if not isinstance(manifest, dict) or set(manifest) != {'revision', 'image'}:
+              raise ValueError('Existing release manifest has an invalid schema')
+          if manifest['revision'] != os.environ['GITHUB_SHA']:
+              raise ValueError('Existing release manifest revision differs from the requested release')
+          if not isinstance(manifest['image'], str) or not re.fullmatch(r'ghcr\.io/xsolutionsmd/clarke\-s\-express\-shoe\-repair\-abdul\-dev@sha256:[0-9a-f]{64}', manifest['image']):
+              raise ValueError('Existing release manifest image is not the expected package and digest')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('reuse=true\n')
+          PY
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        if: steps.existing.outputs.reuse != 'true'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        if: steps.existing.outputs.reuse != 'true'
+      - name: Authenticate publication
+        if: steps.existing.outputs.reuse != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - id: image
+        if: steps.existing.outputs.reuse != 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair-abdul-dev:sha-${{ github.sha }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            APP_REVISION=${{ github.sha }}
+            APP_SOURCE_URL=https://github.com/${{ github.repository }}
+      - name: Publish exact Abdul preview
+        id: publication
+        if: steps.existing.outputs.reuse != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [[ $(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/abdul-dev" --jq .object.sha) != "$GITHUB_SHA" ]]; then
+            echo 'Superseded abdul-dev; skipping publication.'
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -n --arg revision "$GITHUB_SHA" --arg image "ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair-abdul-dev@$IMAGE_DIGEST" '{revision:$revision,image:$image}' > deployment.json
+          tag="abdul-dev-$GITHUB_SHA"
+          gh release create "$tag" deployment.json --target "$GITHUB_SHA" --prerelease --latest=false --title "Abdul preview ${GITHUB_SHA:0:7}" --notes 'Checked immutable application image for the Oracle updater.'
+      - name: Verify live deployment
+        if: steps.publication.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORACLE_HOST: ${{ vars.ORACLE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$ORACLE_HOST"
+          for attempt in $(seq 1 60); do
+            if [[ $(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/abdul-dev" --jq .object.sha) != "$GITHUB_SHA" ]]; then exit 0; fi
+            actual=$(curl -fsS --max-time 10 --resolve "clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com:443:$ORACLE_HOST" "https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com/version.json?revision=$GITHUB_SHA" | jq -r .revision) || actual=''
+            if [[ "$actual" == "$GITHUB_SHA" ]]; then
+              [[ $(curl -fsS --max-time 10 "https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com/version.json?revision=$GITHUB_SHA" | jq -r .revision) == "$GITHUB_SHA" ]]
+              curl -fsS --max-time 10 https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com/ -o live.html
+              test -s live.html
+              echo "Verified **$GITHUB_SHA** at https://clarke-s-express-shoe-repair-abdul-dev.xsolutionsmd.com" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Live release did not converge; inspect clarke-s-express-shoe-repair-abdul-dev-update.service.' >&2
+          exit 1
+      - if: always()
+        run: docker logout ghcr.io

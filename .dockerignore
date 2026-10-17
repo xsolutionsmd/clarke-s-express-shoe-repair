@@ -1,0 +1,19 @@
+# Only authored runtime and frontend inputs enter the build context.
+**
+!Dockerfile
+!runtime/
+!runtime/**
+!app/
+!app/**
+**/node_modules
+**/dist
+**/.cache
+**/.vite
+**/.vite-temp
+**/.npm
+**/coverage
+**/__pycache__
+**/.git
+**/.env
+**/.env.*
+**/*.log

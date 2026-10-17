@@ -1,0 +1,6 @@
+clarke-s-express-shoe-repair.xsolutionsmd.com {
+    request_body {
+        max_size 55MB
+    }
+    reverse_proxy clarke-s-express-shoe-repair-app:8080
+}

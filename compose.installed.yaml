@@ -1,0 +1,11 @@
+services:
+  app:
+    image: ${APP_IMAGE:?Provide an immutable image with the application launcher}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8787}:8080"
+    volumes:
+      - app-data:/data
+    init: true
+    restart: unless-stopped
+volumes:
+  app-data:

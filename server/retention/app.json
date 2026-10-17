@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "name": "clarke-s-express-shoe-repair",
+  "project": "clarke-s-express-shoe-repair",
+  "source": "https://github.com/xsolutionsmd/clarke-s-express-shoe-repair",
+  "repositories": {
+    "image": "ghcr.io/xsolutionsmd/clarke-s-express-shoe-repair"
+  },
+  "state_dir": "/var/lib/clarke-s-express-shoe-repair-deploy",
+  "current": "current.json",
+  "recovery_files": [
+    "previous.env",
+    "previous-current.json"
+  ],
+  "pending_globs": [
+    "transaction",
+    "transaction.json",
+    "transaction.json.new",
+    "check.*",
+    "check-*"
+  ],
+  "keep_previous": 2,
+  "minimum_age_hours": 24
+}

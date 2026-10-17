@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+      args:
+        APP_REVISION: ${APP_REVISION:?Use the application launcher}
+        APP_SOURCE_URL: ${APP_SOURCE_URL:?Use the application launcher}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8787}:8080"
+    volumes:
+      - ./app:/workspace
+      - app-node-modules:/workspace/node_modules
+      - app-data:/data
+    environment:
+      APP_REVISION: ${APP_REVISION}
+    init: true
+    restart: unless-stopped
+volumes:
+  app-data:
+  app-node-modules:
