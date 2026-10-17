@@ -32,14 +32,17 @@ def database():
         c.close();raise RuntimeError('Refusing a non-candidate database.')
     return c
 
-def seed(role='admin',expired=False):
-    stamp=int(time.time()*1000);ident=str(uuid.uuid4());sid=secrets.token_urlsafe(32)
+def seed(role='admin',expired=False,member_id=None):
+    stamp=int(time.time()*1000);ident=member_id or str(uuid.uuid4());sid=secrets.token_urlsafe(32)
     secret=(DATA/'secret.key').read_bytes().strip();csrf_key=hmac.new(secret,b'clarke-csrf-v1',hashlib.sha256).digest()
     csrf=base64.urlsafe_b64encode(hmac.new(csrf_key,sid.encode(),hashlib.sha256).digest()).decode().rstrip('=')
     with database() as c:
         c.execute('BEGIN IMMEDIATE')
-        c.execute('INSERT INTO members VALUES(?,?,?,?,1,1,?,?,?)',(ident,role+'-'+ident[:8]+'@example.test','synthetic-e2e-'+ident,role,stamp,stamp,stamp))
-        c.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?,?,?,NULL,?)',(hashlib.sha256(sid.encode()).hexdigest(),hashlib.sha256(csrf.encode()).hexdigest(),ident,1,stamp,stamp,stamp-1 if expired else stamp+43200000,stamp-1 if expired else stamp+7200000,'google'))
+        if member_id is None:
+            c.execute('INSERT INTO members VALUES(?,?,?,?,1,1,?,?,?)',(ident,role+'-'+ident[:8]+'@example.test','synthetic-e2e-'+ident,role,stamp,stamp,stamp))
+        member=c.execute('SELECT * FROM members WHERE id=? AND active=1 AND google_sub IS NOT NULL',(ident,)).fetchone()
+        assert member and member['role']==role, 'Restoration requires the same active fixture member.'
+        c.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?,?,?,NULL,?)',(hashlib.sha256(sid.encode()).hexdigest(),hashlib.sha256(csrf.encode()).hexdigest(),ident,member['version'],stamp,stamp,stamp-1 if expired else stamp+43200000,stamp-1 if expired else stamp+7200000,'google'))
     return dict(memberId=ident,csrf=csrf,cookie=dict(name='clarke_session',value=URLSafeTimedSerializer(secret,salt='clarke-session-v1').dumps({'sid':sid}),url=os.environ.get('BASE_URL','http://candidate:8080'),httpOnly=True,secure=False,sameSite='Lax'))
 
 def reset_business():

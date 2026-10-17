@@ -205,6 +205,10 @@ def test_offline_failure_refresh_deep_link_and_back_keep_draft(page,context):
     context.set_offline(True);page.locator('.request-form button[type="submit"]').click()
     expect(page.get_by_text(re.compile('offline|connection|reach the shop')).first).to_be_visible()
     expect(page.get_by_label('Your name',exact=True)).to_have_value('Synthetic Browser Customer')
+    alert=page.locator('.request-form [role="alert"]')
+    expect(alert.locator('a[href="tel:+14108368316"]')).to_be_visible()
+    expect(alert.locator('a[href="tel:+14433863800"]')).to_be_visible()
+    expect(page.locator('.photo-list li')).to_have_count(1)
     context.set_offline(False);page.locator('.request-form button[type="submit"]').click();receipt(page)
 
 def test_double_submit_one_record(page):
@@ -258,7 +262,10 @@ def test_pause_and_closed_confirmation(page,browser):
         s=read(staff,'/admin/settings')['body']['data']
         assert mutate(staff,'/admin/settings',{'expectedVersion':s['version'],'intakeAccepting':False,'intakePauseMessage':'Call the shop while requests are paused.'},'PATCH')['status']==200
         page.goto('/repair-request');expect(page.locator('.request-form')).to_have_count(0)
-        expect(page.locator('a[href="tel:+14108368316"]').first).to_be_visible()
+        paused=page.locator('[data-paused]')
+        expect(paused.locator('a[href="tel:+14108368316"]')).to_be_visible()
+        expect(paused.locator('a[href="tel:+14433863800"]')).to_be_visible()
+        expect(paused.locator('a[href="sms:+14433863800"]')).to_be_visible()
         s=read(staff,'/admin/settings')['body']['data'];mutate(staff,'/admin/settings',{'expectedVersion':s['version'],'intakeAccepting':True},'PATCH')
         hours=read(staff,'/admin/hours')['body']['data'];mutate(staff,'/admin/hours',{'expectedVersion':hours['version'],'days':[None]*7},'PUT')
         fill(page).click();data=receipt(page);assert 'closed' in data['closureMessage'].lower() and data['nextOpensAt'] is None

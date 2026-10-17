@@ -1,7 +1,7 @@
 # Handoff
 
 <!-- xs-status:start -->
-Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
+Pipeline status (generated 2026-10-17T19:48:51.044900+00:00):
 
 - **identity**: done
 - **research**: done
@@ -10,13 +10,13 @@ Pipeline status (generated 2026-10-17T14:13:22.363078+00:00):
 - **delivery**: done
 - **infra**: done
 - **template**: done
-- **build**: stale: features changed; review and record this stage again
+- **build**: done
 - **deploy**: todo: record verified deploy evidence
 <!-- xs-status:end -->
 
 ## Current state
 
-2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. The completed review fixes pass 134 backend/API tests and 81 browser cases. Earlier backend recovery checks passed 61 recovery tests and 54 updater cases. All 19 code/visual findings are triaged and fixed. Committed-candidate visual acceptance and live release remain outstanding.
+2026-10-17: functional/full pipeline in progress. All three live sites remain HTTPS/noindex placeholders at 7cc259a097d6a736a057d84726eda6ae74ffbfc7. Committed candidate 37fd564eb87aeffb6223d70b482c1662d483d57e passed 134 backend/API tests and 81 browser cases; the final command exited 0. Earlier backend recovery checks passed 61 recovery tests and 54 updater cases. All 19 code/visual findings are triaged and fixed, and the parent affected-screen visual pass is accepted. All 45/45 pre rows now pass. Four targeted backend/API cases and four browser scenarios closed the remaining evidence gaps without application changes. All 13 live rows remain.
 
 ## Last session
 
@@ -24,7 +24,7 @@ Research covered 29 official pages, both Maps locations, social profiles and dir
 
 ## Next step
 
-Verify the committed candidate and affected desktop/tablet/phone flows, then map the 45 pre-release scenarios to evidence. All 13 live rows and real Google/Gmail checks remain outstanding. The alleged development Vite override was excluded after source inspection; email labels and all accepted review findings are fixed. Install the updated environment-bound backup restore scripts on all three hosts during release.
+Build is accepted. Perform the authorized first release to all three environments, then verify all 13 live rows including actual Google/Gmail. Install the updated environment-bound backup restore scripts on all three hosts during release. Record final branch-specific revisions after pushing the final handoff/state commits. Private visual-r5.md and acceptance-gaps-r6.md retain exact evidence and limitations.
 
 ## Blockers / waiting on
 

@@ -1,5 +1,21 @@
 # Validation
 
+## Accepted pre-release build, 2026-10-17
+
+Committed runtime 37fd564eb87aeffb6223d70b482c1662d483d57e passed the final combined
+check with exit 0: 134 backend and 81 browser cases plus lint/build/runtime checks.
+The coordinator completed the affected desktop/tablet/phone visual pass and retained
+the main-flow recordings. All 45 pre-release acceptance rows now pass.
+
+Four targeted follow-up scenarios close the evidence gaps: real intake thresholds,
+paused contact actions, SQLite-contention 503/offline recovery, and same-member
+session re-entry with a retained estimate and stale-version guard. Four backend/API
+cases and four browser scenarios passed. These changes add tests only; application
+code is unchanged. The coordinator checked all four returned test-file hashes.
+
+Actual Google/Gmail and all 13 live rows remain unverified pending release. Real
+provider success, physical printing and operational owner approval are not claimed.
+
 ## Functional review fixes, 2026-10-17
 
 The final local implementation suite passed 134 backend tests and 81 Chromium browser
